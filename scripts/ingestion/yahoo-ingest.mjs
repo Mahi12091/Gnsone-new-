@@ -18,18 +18,13 @@ const growth = (current, previous) => current != null && previous != null && pre
 const scorePositive = (v, low, high) => v == null ? null : clamp(((v - low) / (high - low)) * 100);
 const scoreInverse = (v, good, bad) => v == null ? null : clamp(((bad - v) / (bad - good)) * 100);
 
-// Yahoo's fundamentals-timeseries endpoint has returned both Unix seconds and ISO date strings
-// over time. Never feed an invalid Date into toISOString(); one malformed filing must not abort
-// the complete 50-company ingestion run.
 function safeDate(value) {
   if (value == null) return null;
   let date;
   if (typeof value === 'number' || /^\d+(\.\d+)?$/.test(String(value))) {
     const n = Number(value);
     date = new Date(n < 100000000000 ? n * 1000 : n);
-  } else {
-    date = new Date(String(value));
-  }
+  } else date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }
 
@@ -47,10 +42,7 @@ function extractTimeseries(json) {
 
 function valuesByType(map, type) {
   const rows = map[type] || map[`annual${type}`] || [];
-  return rows.map(x => ({
-    date: safeDate(x.asOfDate ?? x.periodEndDate ?? x.endDate),
-    value: num(x.reportedValue?.raw ?? x.reportedValue)
-  })).filter(x => x.date && x.value != null).sort((a, b) => a.date.localeCompare(b.date));
+  return rows.map(x => ({ date: safeDate(x.asOfDate ?? x.periodEndDate ?? x.endDate), value: num(x.reportedValue?.raw ?? x.reportedValue) })).filter(x => x.date && x.value != null).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 async function ingestStock(stock) {
@@ -61,9 +53,7 @@ async function ingestStock(stock) {
   const start = now - HISTORY_DAYS * 86400;
   const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${start}&period2=${now}&interval=1d&events=div%2Csplits&includeAdjustedClose=true`;
   const fundamentalsUrl = `https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(yahooSymbol)}?type=annualTotalRevenue,annualOperatingIncome,annualNetIncome,annualEBITDA,annualTotalAssets,annualTotalLiabilitiesNetMinorityInterest,annualStockholdersEquity,annualTotalDebt,annualCashCashEquivalentsAndShortTermInvestments,annualFreeCashFlow,annualOperatingCashFlow,annualCapitalExpenditure,annualDilutedEPS,annualDilutedAverageShares&period1=${start}&period2=${now}`;
-
   const [chart, fundamentalsJson] = await Promise.all([yahoo(chartUrl), yahoo(fundamentalsUrl)]);
-  const meta = chart?.chart?.result?.[0]?.meta || {};
   const timestamps = chart?.chart?.result?.[0]?.timestamp || [];
   const q = chart?.chart?.result?.[0]?.indicators?.quote?.[0] || {};
   const adj = chart?.chart?.result?.[0]?.indicators?.adjclose?.[0]?.adjclose || [];
@@ -72,11 +62,8 @@ async function ingestStock(stock) {
   const closes = prices.map(x => x.close);
   const latest = closes.at(-1);
   const asOf = prices.at(-1).date;
-
   const ts = extractTimeseries(fundamentalsJson);
-  const series = {
-    revenue: valuesByType(ts, 'annualTotalRevenue'), operatingIncome: valuesByType(ts, 'annualOperatingIncome'), netIncome: valuesByType(ts, 'annualNetIncome'), ebitda: valuesByType(ts, 'annualEBITDA'), assets: valuesByType(ts, 'annualTotalAssets'), liabilities: valuesByType(ts, 'annualTotalLiabilitiesNetMinorityInterest'), equity: valuesByType(ts, 'annualStockholdersEquity'), debt: valuesByType(ts, 'annualTotalDebt'), cash: valuesByType(ts, 'annualCashCashEquivalentsAndShortTermInvestments'), fcf: valuesByType(ts, 'annualFreeCashFlow'), cfo: valuesByType(ts, 'annualOperatingCashFlow'), capex: valuesByType(ts, 'annualCapitalExpenditure'), eps: valuesByType(ts, 'annualDilutedEPS'), shares: valuesByType(ts, 'annualDilutedAverageShares')
-  };
+  const series = { revenue: valuesByType(ts, 'annualTotalRevenue'), operatingIncome: valuesByType(ts, 'annualOperatingIncome'), netIncome: valuesByType(ts, 'annualNetIncome'), ebitda: valuesByType(ts, 'annualEBITDA'), assets: valuesByType(ts, 'annualTotalAssets'), liabilities: valuesByType(ts, 'annualTotalLiabilitiesNetMinorityInterest'), equity: valuesByType(ts, 'annualStockholdersEquity'), debt: valuesByType(ts, 'annualTotalDebt'), cash: valuesByType(ts, 'annualCashCashEquivalentsAndShortTermInvestments'), fcf: valuesByType(ts, 'annualFreeCashFlow'), cfo: valuesByType(ts, 'annualOperatingCashFlow'), capex: valuesByType(ts, 'annualCapitalExpenditure'), eps: valuesByType(ts, 'annualDilutedEPS'), shares: valuesByType(ts, 'annualDilutedAverageShares') };
   const latestOf = (arr) => arr.at(-1)?.value ?? null;
   const prevOf = (arr) => arr.at(-2)?.value ?? null;
   const latestRevenue = latestOf(series.revenue), latestProfit = latestOf(series.netIncome), latestEquity = latestOf(series.equity), latestAssets = latestOf(series.assets), latestDebt = latestOf(series.debt), latestCash = latestOf(series.cash), latestEbitda = latestOf(series.ebitda), latestEps = latestOf(series.eps), shares = latestOf(series.shares);
@@ -98,14 +85,12 @@ async function ingestStock(stock) {
   const volatility = stddev(returns) != null ? stddev(returns) * Math.sqrt(252) * 100 : null;
   const oneYearReturn = closes.length > 252 ? growth(latest, closes.at(-253)) : null;
   const sma20 = sma(closes, 20), sma50 = sma(closes, 50), sma200 = sma(closes, 200), ema20 = ema(closes, 20), rsi14 = rsi(closes, 14), macd = ema(closes, 12) != null && ema(closes, 26) != null ? ema(closes, 12) - ema(closes, 26) : null;
-
   const quality = avg([scorePositive(roe, 5, 25), scorePositive(roa, 2, 12), scoreInverse(debtEquity, 0.2, 2), scorePositive(netMargin, 5, 25)].filter(x => x != null));
   const growthScore = avg([scorePositive(revenueGrowth, 0, 25), scorePositive(profitGrowth, 0, 30), scorePositive(epsGrowth, 0, 30)].filter(x => x != null));
   const valuation = avg([scoreInverse(pe, 10, 50), scoreInverse(pb, 1, 8), scoreInverse(evEbitda, 8, 35)].filter(x => x != null));
   const momentum = avg([scorePositive(oneYearReturn, -20, 40), latest > (sma200 || latest) ? 70 : 30, rsi14 == null ? null : scorePositive(rsi14, 30, 70)].filter(x => x != null));
   const risk = avg([scoreInverse(volatility, 15, 60), scoreInverse(debtEquity, 0.2, 2)].filter(x => x != null));
   const overall = avg([quality, growthScore, valuation, momentum, risk].filter(x => x != null));
-
   const periods = [...new Set([...series.revenue, ...series.netIncome, ...series.equity, ...series.assets].map(x => x.date))].map(end_date => ({ period_type: 'ANNUAL', start_date: `${Number(end_date.slice(0, 4)) - 1}-04-01`, end_date, fiscal_year: Number(end_date.slice(0, 4)), fiscal_quarter: null }));
   const fundamentals = [];
   const addFund = (code, arr) => { for (const row of arr.slice(-5)) fundamentals.push({ code, value: row.value, period_type: 'ANNUAL', period_end: row.date }); };
@@ -113,7 +98,6 @@ async function ingestStock(stock) {
   const ratios = [['ROE', roe], ['ROA', roa], ['DEBT_TO_EQUITY', debtEquity], ['NET_MARGIN', netMargin], ['EBITDA_MARGIN', ebitdaMargin], ['REVENUE_GROWTH_1Y', revenueGrowth], ['PROFIT_GROWTH_1Y', profitGrowth], ['EPS_GROWTH_1Y', epsGrowth]].filter(([,v]) => v != null).map(([code,value]) => ({ code, value, period_type:'ANNUAL', period_end: series.revenue.at(-1)?.date || asOf }));
   const valuationRows = [['PE',pe],['PB',pb],['PS',ps],['EV',ev],['EV_EBITDA',evEbitda],['MARKET_CAP',marketCap]].filter(([,v]) => v != null).map(([code,value]) => ({code,value}));
   const technical = [['SMA20',sma20],['SMA50',sma50],['SMA200',sma200],['EMA20',ema20],['RSI14',rsi14],['MACD',macd],['BB_MID20',sma20]].filter(([,v]) => v != null).map(([code,value]) => ({code,value,metadata:{source:'Yahoo Finance',one_year_return:oneYearReturn,volatility}}));
-
   return supabaseRpc('gns_ingest_yahoo_company', { p_payload: { instrument_id: stock.instrument_id, company_id: stock.company_id, listing_id: stock.nse_listing_id, as_of_date: asOf, profile: { shares_outstanding: shares }, prices, fundamental_periods: periods, fundamentals, ratios, valuation: valuationRows, technical, score: { overall, quality, valuation, growth: growthScore, momentum, risk } } });
 }
 
