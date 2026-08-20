@@ -140,6 +140,12 @@ main .rounded-\[28px\] {
   border-color: #cbd5e1 !important;
 }
 
+/* Footer copyright row stays centered on every page, including the homepage footer. */
+footer > div > div:last-child {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
 @media (max-width: 639px) {
   header > div {
     padding-left: 16px !important;
