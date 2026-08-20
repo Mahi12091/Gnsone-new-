@@ -47,8 +47,8 @@ export function validateExchangeRows(rows: ExchangeMasterRow[]): ExchangeRowQual
       invalidRowIndexes.add(rowIndex);
     }
 
-    const duplicate = <T extends string>(
-      value: T | null,
+    const duplicate = (
+      value: string | null | undefined,
       seen: Map<string, number>,
       code: DataQualityIssue["code"],
       label: string,
