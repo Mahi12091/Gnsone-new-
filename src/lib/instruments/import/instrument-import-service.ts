@@ -1,6 +1,5 @@
-import { decideInstrumentUpsert, type InstrumentUpsertResult } from "./instrument-upsert";
-import type { ExchangeInstrumentRow } from "../normalizer";
-import type { ExistingInstrument } from "../resolver";
+import { decideInstrumentUpsert, type InstrumentUpsertResult, type ExistingInstrument } from "./instrument-upsert";
+import type { ExchangeMasterRow } from "../exchange-master";
 
 export type InstrumentImportSummary = {
   total: number;
@@ -11,12 +10,8 @@ export type InstrumentImportSummary = {
   results: InstrumentUpsertResult[];
 };
 
-/**
- * Batch decision service. It intentionally has no Supabase dependency so it
- * can be tested deterministically and later wired to a repository adapter.
- */
 export function planInstrumentImport(
-  rows: ExchangeInstrumentRow[],
+  rows: ExchangeMasterRow[],
   existing: ExistingInstrument[],
 ): InstrumentImportSummary {
   const results = rows.map((row) => decideInstrumentUpsert(row, existing));
