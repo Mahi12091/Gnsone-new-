@@ -8,7 +8,15 @@ const NSE_SOURCE = 'af52df14-53d8-4f77-adf7-2b9b28cce084';
 const INR = '44e5f887-39f2-4369-9b00-6ac0050311e6';
 
 async function sb(path, options = {}) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...options, headers: { ...SB_HEADERS, ...(options.headers || {}) } });
+  const match = path.match(/^(market|reference|ingestion)\.(.*)$/);
+  const schema = match?.[1];
+  const resource = match?.[2] || path;
+  const headers = { ...SB_HEADERS, ...(options.headers || {}) };
+  if (schema) {
+    headers['Content-Profile'] = schema;
+    headers['Accept-Profile'] = schema;
+  }
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${resource}`, { ...options, headers });
   if (!r.ok) throw new Error(`Supabase ${r.status}: ${await r.text()}`);
   return r.status === 204 ? null : r.json();
 }
