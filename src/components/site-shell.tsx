@@ -24,4 +24,6 @@ export function PageTitle({ eyebrow, title, description }: { eyebrow: string; ti
   return <div className="mb-7"><p className="text-[11px] font-bold uppercase tracking-[.18em] text-emerald-400">{eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>{description && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>}</div>;
 }
 
-export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) { return <section className={`rounded-xl border border-white/[.07] bg-[#0b1727] ${className}`}>{children}</section>; }
+export function Card({ children, className = "", id, ariaLabel }: { children: React.ReactNode; className?: string; id?: string; ariaLabel?: string }) {
+  return <section id={id} aria-label={ariaLabel} className={`rounded-xl border border-white/[.07] bg-[#0b1727] ${className}`}>{children}</section>;
+}
