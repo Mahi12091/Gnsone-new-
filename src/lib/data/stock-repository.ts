@@ -31,15 +31,29 @@ export async function getStocks(limit = 50): Promise<StockListItem[]> {
     const listings = (row.listings ?? []) as Listing[];
     const nse = listings.find((l) => exchangeCode.get(l.exchange_id) === "NSE") ?? null;
     const bse = listings.find((l) => exchangeCode.get(l.exchange_id) === "BSE") ?? null;
-    return {
-      instrument_id: row.instrument_id,
-      company_id: row.company_id,
-      name: row.name,
-      nse_symbol: nse?.symbol ?? null,
-      bse_code: bse?.exchange_security_code ?? null,
-      nse_listing_id: nse?.listing_id ?? null,
-    };
+    return { instrument_id: row.instrument_id, company_id: row.company_id, name: row.name, nse_symbol: nse?.symbol ?? null, bse_code: bse?.exchange_security_code ?? null, nse_listing_id: nse?.listing_id ?? null };
   });
+}
+
+export async function getStockSnapshots(limit = 6): Promise<StockDetail[]> {
+  const stocks = await getStocks(limit);
+  if (!stocks.length) return [];
+  const supabase = await createSupabaseServerClient();
+  const listingIds = stocks.flatMap((s) => s.nse_listing_id ? [s.nse_listing_id] : []);
+  const instrumentIds = stocks.map((s) => s.instrument_id);
+  const [{ data: prices, error: priceError }, { data: scores, error: scoreError }] = await Promise.all([
+    listingIds.length ? supabase.schema("market").from("historical_prices").select("listing_id, close, price_date").in("listing_id", listingIds).order("price_date", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    supabase.schema("analytics").from("stock_score_values").select("instrument_id, overall_score, as_of_date").in("instrument_id", instrumentIds).order("as_of_date", { ascending: false }),
+  ]);
+  if (priceError) throw new Error(`Unable to load prices: ${priceError.message}`);
+  if (scoreError) throw new Error(`Unable to load scores: ${scoreError.message}`);
+
+  const latestPrice = new Map<string, { close: number; price_date: string }>();
+  for (const row of prices ?? []) if (!latestPrice.has(row.listing_id)) latestPrice.set(row.listing_id, { close: Number(row.close), price_date: row.price_date });
+  const latestScore = new Map<string, number>();
+  for (const row of scores ?? []) if (!latestScore.has(row.instrument_id)) latestScore.set(row.instrument_id, Number(row.overall_score));
+
+  return stocks.map((stock) => ({ ...stock, latest_price: stock.nse_listing_id ? latestPrice.get(stock.nse_listing_id)?.close ?? null : null, price_date: stock.nse_listing_id ? latestPrice.get(stock.nse_listing_id)?.price_date ?? null : null, score: latestScore.get(stock.instrument_id) ?? null }));
 }
 
 export async function getStockBySymbol(symbol: string): Promise<StockDetail | null> {
@@ -47,21 +61,12 @@ export async function getStockBySymbol(symbol: string): Promise<StockDetail | nu
   const normalized = symbol.trim().toUpperCase();
   const stock = stocks.find((s) => s.nse_symbol?.toUpperCase() === normalized || s.bse_code === symbol.trim());
   if (!stock) return null;
-
   const supabase = await createSupabaseServerClient();
   const [{ data: prices, error: priceError }, { data: scores, error: scoreError }] = await Promise.all([
-    stock.nse_listing_id
-      ? supabase.schema("market").from("historical_prices").select("close, price_date").eq("listing_id", stock.nse_listing_id).order("price_date", { ascending: false }).limit(1)
-      : Promise.resolve({ data: [], error: null }),
+    stock.nse_listing_id ? supabase.schema("market").from("historical_prices").select("close, price_date").eq("listing_id", stock.nse_listing_id).order("price_date", { ascending: false }).limit(1) : Promise.resolve({ data: [], error: null }),
     supabase.schema("analytics").from("stock_score_values").select("overall_score").eq("instrument_id", stock.instrument_id).order("as_of_date", { ascending: false }).limit(1),
   ]);
   if (priceError) throw new Error(`Unable to load price: ${priceError.message}`);
   if (scoreError) throw new Error(`Unable to load score: ${scoreError.message}`);
-
-  return {
-    ...stock,
-    latest_price: prices?.[0]?.close == null ? null : Number(prices[0].close),
-    price_date: prices?.[0]?.price_date ?? null,
-    score: scores?.[0]?.overall_score == null ? null : Number(scores[0].overall_score),
-  };
+  return { ...stock, latest_price: prices?.[0]?.close == null ? null : Number(prices[0].close), price_date: prices?.[0]?.price_date ?? null, score: scores?.[0]?.overall_score == null ? null : Number(scores[0].overall_score) };
 }
