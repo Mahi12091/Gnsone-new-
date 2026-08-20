@@ -24,12 +24,12 @@ async function nseFetch(url: string): Promise<unknown> {
 export const nsePublicProvider: MarketDataProvider = {
   code: "NSE_PUBLIC",
 
-  async getQuote({ symbol }): Promise<Quote | null> {
+  async getQuote({ instrumentId, listingId, symbol }): Promise<Quote | null> {
     const payload = (await nseFetch(`${NSE_QUOTE_URL}${encodeURIComponent(symbol)}`)) as Record<string, any>;
     const priceInfo = payload.priceInfo ?? {};
-    const quote = {
-      instrumentId: payload.metadata?.identifier ?? crypto.randomUUID(),
-      listingId: payload.metadata?.identifier ?? crypto.randomUUID(),
+    return validateQuote({
+      instrumentId,
+      listingId,
       asOf: new Date().toISOString(),
       price: parseNumber(priceInfo.lastPrice),
       open: parseNumber(priceInfo.open),
@@ -38,8 +38,7 @@ export const nsePublicProvider: MarketDataProvider = {
       previousClose: parseNumber(priceInfo.previousClose),
       volume: parseNumber(payload.preOpenMarket?.totalTradedVolume ?? payload.securityWiseDP?.tradedVolume),
       sourceCode: "NSE_PUBLIC",
-    };
-    return validateQuote(quote);
+    });
   },
 
   async getHistoricalPrices(): Promise<HistoricalPrice[]> {
