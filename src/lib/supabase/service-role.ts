@@ -1,0 +1,14 @@
+import { createClient } from "@supabase/supabase-js";
+
+import { env } from "@/lib/env";
+
+/** Server-only Supabase client for trusted jobs. Never import this into client components. */
+export function createSupabaseServiceRoleClient() {
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase service-role environment variables are not configured.");
+  }
+
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
