@@ -1,14 +1,27 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().min(1).optional(),
+);
+
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().url().optional(),
+);
+
 const envSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  MARKET_DATA_API_KEY: z.string().min(1).optional(),
-  NEWS_API_KEY: z.string().min(1).optional(),
-  AI_API_KEY: z.string().min(1).optional(),
-  CRON_SECRET: z.string().min(1).optional(),
+  NEXT_PUBLIC_SITE_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().url().default("http://localhost:3000"),
+  ),
+  NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString,
+  SUPABASE_SERVICE_ROLE_KEY: optionalString,
+  MARKET_DATA_API_KEY: optionalString,
+  NEWS_API_KEY: optionalString,
+  AI_API_KEY: optionalString,
+  CRON_SECRET: optionalString,
 });
 
 export const env = envSchema.parse({
