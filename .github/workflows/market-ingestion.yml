@@ -28,6 +28,13 @@ jobs:
           INGEST_HISTORY_DAYS: '1825'
         run: node scripts/ingestion/yahoo-ingest.mjs
 
+      - name: Populate complete financial data layer
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INGEST_HISTORY_DAYS: '1825'
+        run: node scripts/ingestion/complete-data-ingest.mjs
+
       - name: Run market structure ingestion
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
