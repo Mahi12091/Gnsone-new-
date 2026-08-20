@@ -11,15 +11,37 @@
 }
 
 * { box-sizing: border-box; }
-html { min-height: 100%; scroll-behavior: smooth; }
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
 body {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+main {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+section, header, footer, nav, div, article, aside {
+  min-width: 0;
+}
+
+h1, h2, h3, p, span, a {
+  overflow-wrap: break-word;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -29,6 +51,138 @@ button { cursor: pointer; }
 
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
+
+/* Homepage layout safeguards */
+main > section > div,
+main > header > div {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Prevent grid/flex children from creating horizontal overflow. */
+main .grid > *,
+main .flex > * {
+  min-width: 0;
+}
+
+/* Hero typography and controls */
+main h1 {
+  max-width: 100%;
+  text-wrap: balance;
+}
+
+main h1 span {
+  display: inline;
+}
+
+main p {
+  max-width: 100%;
+}
+
+/* Keep the hero search control inside the viewport on every device. */
+main a[class*="max-w-2xl"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Research workspace tabs must shrink rather than force the page wider. */
+main .grid.grid-cols-4 {
+  min-width: 0;
+}
+main .grid.grid-cols-4 > * {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Asset cards and insight cards stay contained at narrow widths. */
+main .rounded-2xl,
+main .rounded-\[28px\] {
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  header > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Comfortable mobile gutters without wasting horizontal space. */
+  main > section > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Hero needs a slightly smaller display size so the full headline fits. */
+  main h1 {
+    font-size: clamp(2.55rem, 12vw, 3.35rem) !important;
+    line-height: .98 !important;
+    letter-spacing: -.055em !important;
+  }
+
+  main h1 span {
+    white-space: normal !important;
+  }
+
+  main .text-lg {
+    line-height: 1.65;
+  }
+
+  /* Badge should wrap cleanly instead of extending beyond the viewport. */
+  main [class*="tracking-[.18em]"] {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* Hero search: stack the CTA when the phone is very narrow. */
+  main a[class*="max-w-2xl"] {
+    min-width: 0;
+  }
+
+  main a[class*="max-w-2xl"] > span:nth-child(2) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Reduce card padding on phones while keeping touch targets comfortable. */
+  main .p-6 {
+    padding: 20px;
+  }
+
+  /* Don't let the workspace mockup dominate the phone viewport. */
+  main .max-w-xl {
+    max-width: 100%;
+  }
+
+  /* Mobile cards should use the full available content width. */
+  main .grid.sm\:grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Footer columns become readable, evenly spaced blocks. */
+  footer .grid {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  main h1 {
+    font-size: clamp(3.25rem, 8vw, 5rem) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Consistent desktop gutters on large displays. */
+  main > section > div,
+  main > header > div {
+    max-width: 1440px;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
