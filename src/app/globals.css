@@ -33,7 +33,7 @@ main .grid.grid-cols-4 { min-width: 0; }
 main .grid.grid-cols-4 > * { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 main .rounded-2xl, main .rounded-\[28px\] { max-width: 100%; }
 
-.gns-light-page [class*="bg-[#06101d]"], .gns-light-page [class*="bg-[#0b1727"]"] { background-color: #ffffff !important; }
+.gns-light-page [class*="bg-[#06101d]"], .gns-light-page [class*="bg-[#0b1727]"] { background-color: #ffffff !important; }
 .gns-light-page [class*="bg-white/[.025]"], .gns-light-page [class*="bg-white/[.02]"], .gns-light-page [class*="bg-white/[.015]"], .gns-light-page [class*="bg-white/5"] { background-color: #f8fafc !important; }
 .gns-light-page [class*="border-white/"] { border-color: #e2e8f0 !important; }
 .gns-light-page [class*="text-slate-100"] { color: #0f172a !important; }
@@ -48,11 +48,9 @@ main .rounded-2xl, main .rounded-\[28px\] { max-width: 100%; }
 
 footer > div > div:last-child { text-align: center !important; justify-content: center !important; }
 
-/* Mobile header dropdown: fixed readable width, never letter-by-letter wrapping. */
 .gns-mobile-menu { width: 280px; max-width: calc(100vw - 32px); }
 .gns-mobile-menu nav, .gns-mobile-menu a { writing-mode: horizontal-tb !important; text-orientation: mixed !important; white-space: nowrap !important; overflow-wrap: normal !important; word-break: normal !important; }
 
-/* Stock research section tabs: horizontal scrolling on small screens, normal tabs on desktop. */
 main nav[aria-label="Stock research sections"] { width: 100%; max-width: 100%; overflow-x: auto !important; overflow-y: hidden; }
 main nav[aria-label="Stock research sections"] > div { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; width: max-content !important; min-width: max-content !important; }
 main nav[aria-label="Stock research sections"] a { display: block !important; flex: 0 0 auto !important; width: max-content !important; min-width: max-content !important; white-space: nowrap !important; writing-mode: horizontal-tb !important; overflow-wrap: normal !important; word-break: normal !important; }
