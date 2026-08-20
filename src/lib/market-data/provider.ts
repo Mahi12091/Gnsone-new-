@@ -14,13 +14,19 @@ export const quoteSchema = z.object({
 });
 
 export type Quote = z.infer<typeof quoteSchema>;
-
 export type HistoricalPrice = Quote & { priceDate: string; adjustedClose: number | null };
 
 export interface MarketDataProvider {
   readonly code: string;
-  getQuote(input: { symbol: string; exchange: "NSE" | "BSE" }): Promise<Quote | null>;
+  getQuote(input: {
+    instrumentId: string;
+    listingId: string;
+    symbol: string;
+    exchange: "NSE" | "BSE";
+  }): Promise<Quote | null>;
   getHistoricalPrices(input: {
+    instrumentId: string;
+    listingId: string;
     symbol: string;
     exchange: "NSE" | "BSE";
     from: string;
