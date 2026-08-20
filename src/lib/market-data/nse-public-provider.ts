@@ -2,6 +2,19 @@ import { validateQuote, type HistoricalPrice, type MarketDataProvider, type Quot
 
 const NSE_QUOTE_URL = "https://www.nseindia.com/api/quote-equity?symbol=";
 
+type NsePriceInfo = {
+  lastPrice?: unknown;
+  open?: unknown;
+  previousClose?: unknown;
+  intraDayHighLow?: { max?: unknown; min?: unknown };
+};
+
+type NseQuotePayload = {
+  priceInfo?: NsePriceInfo;
+  preOpenMarket?: { totalTradedVolume?: unknown };
+  securityWiseDP?: { tradedVolume?: unknown };
+};
+
 function parseNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(String(value).replace(/,/g, ""));
@@ -25,7 +38,7 @@ export const nsePublicProvider: MarketDataProvider = {
   code: "NSE_PUBLIC",
 
   async getQuote({ instrumentId, listingId, symbol }): Promise<Quote | null> {
-    const payload = (await nseFetch(`${NSE_QUOTE_URL}${encodeURIComponent(symbol)}`)) as Record<string, any>;
+    const payload = (await nseFetch(`${NSE_QUOTE_URL}${encodeURIComponent(symbol)}`)) as NseQuotePayload;
     const priceInfo = payload.priceInfo ?? {};
     return validateQuote({
       instrumentId,
