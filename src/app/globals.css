@@ -52,20 +52,18 @@ button { cursor: pointer; }
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
 
-/* Homepage layout safeguards */
+/* Shared page layout safeguards */
 main > section > div,
 main > header > div {
   width: 100%;
   min-width: 0;
 }
 
-/* Prevent grid/flex children from creating horizontal overflow. */
 main .grid > *,
 main .flex > * {
   min-width: 0;
 }
 
-/* Hero typography and controls */
 main h1 {
   max-width: 100%;
   text-wrap: balance;
@@ -79,13 +77,11 @@ main p {
   max-width: 100%;
 }
 
-/* Keep the hero search control inside the viewport on every device. */
 main a[class*="max-w-2xl"] {
   width: 100%;
   max-width: 100%;
 }
 
-/* Research workspace tabs must shrink rather than force the page wider. */
 main .grid.grid-cols-4 {
   min-width: 0;
 }
@@ -96,10 +92,52 @@ main .grid.grid-cols-4 > * {
   text-overflow: ellipsis;
 }
 
-/* Asset cards and insight cards stay contained at narrow widths. */
 main .rounded-2xl,
 main .rounded-\[28px\] {
   max-width: 100%;
+}
+
+/* Keep legacy dark single-page components visually consistent with the light homepage. */
+.gns-light-page [class*="bg-[#06101d]"],
+.gns-light-page [class*="bg-[#0b1727]"] {
+  background-color: #ffffff !important;
+}
+.gns-light-page [class*="bg-white/[.025]"],
+.gns-light-page [class*="bg-white/[.02]"],
+.gns-light-page [class*="bg-white/[.015]"],
+.gns-light-page [class*="bg-white/5"] {
+  background-color: #f8fafc !important;
+}
+.gns-light-page [class*="border-white/"] {
+  border-color: #e2e8f0 !important;
+}
+.gns-light-page [class*="text-slate-100"] {
+  color: #0f172a !important;
+}
+.gns-light-page [class*="text-slate-300"] {
+  color: #334155 !important;
+}
+.gns-light-page [class*="text-slate-400"] {
+  color: #475569 !important;
+}
+.gns-light-page [class*="text-slate-500"] {
+  color: #64748b !important;
+}
+.gns-light-page [class*="text-slate-600"] {
+  color: #94a3b8 !important;
+}
+.gns-light-page [class*="text-emerald-300"],
+.gns-light-page [class*="text-emerald-400"] {
+  color: #059669 !important;
+}
+.gns-light-page [class*="bg-emerald-400"] {
+  background-color: #10b981 !important;
+}
+.gns-light-page [class*="bg-white/[.06]"] {
+  background-color: #e2e8f0 !important;
+}
+.gns-light-page [class*="border-dashed"] {
+  border-color: #cbd5e1 !important;
 }
 
 @media (max-width: 639px) {
@@ -108,13 +146,11 @@ main .rounded-\[28px\] {
     padding-right: 16px !important;
   }
 
-  /* Comfortable mobile gutters without wasting horizontal space. */
   main > section > div {
     padding-left: 16px !important;
     padding-right: 16px !important;
   }
 
-  /* Hero needs a slightly smaller display size so the full headline fits. */
   main h1 {
     font-size: clamp(2.55rem, 12vw, 3.35rem) !important;
     line-height: .98 !important;
@@ -129,7 +165,6 @@ main .rounded-\[28px\] {
     line-height: 1.65;
   }
 
-  /* Badge should wrap cleanly instead of extending beyond the viewport. */
   main [class*="tracking-[.18em]"] {
     max-width: 100%;
     white-space: normal;
@@ -137,7 +172,6 @@ main .rounded-\[28px\] {
     line-height: 1.5;
   }
 
-  /* Hero search: stack the CTA when the phone is very narrow. */
   main a[class*="max-w-2xl"] {
     min-width: 0;
   }
@@ -149,22 +183,18 @@ main .rounded-\[28px\] {
     white-space: nowrap;
   }
 
-  /* Reduce card padding on phones while keeping touch targets comfortable. */
   main .p-6 {
     padding: 20px;
   }
 
-  /* Don't let the workspace mockup dominate the phone viewport. */
   main .max-w-xl {
     max-width: 100%;
   }
 
-  /* Mobile cards should use the full available content width. */
   main .grid.sm\:grid-cols-2 {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Footer columns become readable, evenly spaced blocks. */
   footer .grid {
     min-width: 0;
   }
@@ -177,7 +207,6 @@ main .rounded-\[28px\] {
 }
 
 @media (min-width: 1024px) {
-  /* Consistent desktop gutters on large displays. */
   main > section > div,
   main > header > div {
     max-width: 1440px;
