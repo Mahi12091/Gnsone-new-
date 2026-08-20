@@ -1,47 +1,49 @@
-import { normalizeExchangeRow, type ExchangeInstrumentRow } from "../normalizer";
-import { resolveInstrumentIdentity, type ExistingInstrument } from "../resolver";
+import { normalizeExchangeRow, type ExchangeMasterRow } from "../exchange-master";
+import { resolveIdentity, type IdentityCandidate } from "../identity-resolver";
 
 export type InstrumentUpsertAction = "INSERT" | "UPDATE" | "SKIP" | "CONFLICT";
+
+export type ExistingInstrument = IdentityCandidate;
 
 export type InstrumentUpsertResult = {
   action: InstrumentUpsertAction;
   reason: string;
-  normalized: ReturnType<typeof normalizeExchangeRow>;
+  normalized: ExchangeMasterRow;
   matchedInstrumentId?: string;
 };
 
-/**
- * Pure decision layer for the instrument importer.
- * Database writes belong to the repository/service layer; this function only
- * decides what should happen to an incoming exchange row.
- */
 export function decideInstrumentUpsert(
-  row: ExchangeInstrumentRow,
+  row: ExchangeMasterRow,
   existing: ExistingInstrument[],
 ): InstrumentUpsertResult {
   const normalized = normalizeExchangeRow(row);
-  const resolution = resolveInstrumentIdentity(normalized, existing);
+  const resolution = resolveIdentity(normalized, existing);
 
-  if (resolution.kind === "conflict") {
+  if (resolution.strategy === "NEW") {
     return {
-      action: "CONFLICT",
-      reason: resolution.reason,
+      action: "INSERT",
+      reason: "No existing canonical identity matched the normalized exchange row.",
       normalized,
     };
   }
 
-  if (resolution.kind === "match") {
-    return {
-      action: "UPDATE",
-      reason: resolution.reason,
-      normalized,
-      matchedInstrumentId: resolution.instrumentId,
-    };
-  }
+  const matched = existing.find((candidate) => {
+    if (resolution.strategy === "ISIN") return candidate.isin === normalized.isin;
+    if (resolution.strategy === "NSE_SYMBOL") return candidate.nseSymbol === normalized.nseSymbol;
+    if (resolution.strategy === "BSE_CODE") return candidate.bseCode === normalized.bseCode;
+    return candidate.name === normalized.name;
+  });
 
-  return {
-    action: "INSERT",
-    reason: "No existing canonical identity matched the normalized exchange row.",
-    normalized,
-  };
+  return matched
+    ? {
+        action: "UPDATE",
+        reason: `Matched existing instrument using ${resolution.strategy}.`,
+        normalized,
+        matchedInstrumentId: matched.instrumentId,
+      }
+    : {
+        action: "CONFLICT",
+        reason: `Identity resolver returned ${resolution.strategy}, but the candidate could not be resolved deterministically.`,
+        normalized,
+      };
 }
