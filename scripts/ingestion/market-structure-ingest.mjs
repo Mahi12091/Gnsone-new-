@@ -28,18 +28,17 @@ const norm = v => String(v ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_
 
 async function ingestYahooActions(stock) {
   const chart = await yahoo(`${stock.nse_symbol}.NS`);
-  const result = chart?.chart?.result?.[0];
-  const events = result?.events || {};
+  const events = chart?.chart?.result?.[0]?.events || {};
   for (const [ts, item] of Object.entries(events.dividends || {})) {
     const ex = date(Number(ts)); const amount = number(item?.amount);
     if (!ex || amount == null) continue;
-    await sb(`market.dividends?instrument_id=eq.${stock.instrument_id}&ex_date=eq.${ex}&amount_per_share=eq.${amount}`, { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ instrument_id:stock.instrument_id, ex_date:ex, amount_per_share:amount, dividend_type:'CASH', currency_id:INR, source_id:YAHOO_SOURCE }) }).catch(async e => { if (!String(e.message).includes('409')) throw e; });
+    await sb('market.dividends', { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ instrument_id:stock.instrument_id, ex_date:ex, amount_per_share:amount, dividend_type:'CASH', currency_id:INR, source_id:YAHOO_SOURCE }) });
   }
-  const splitType = (await sb(`reference.corporate_action_types?code=eq.SPLIT&select=corporate_action_type_id`))[0]?.corporate_action_type_id;
+  const splitType = (await sb('reference.corporate_action_types?code=eq.SPLIT&select=corporate_action_type_id'))[0]?.corporate_action_type_id;
   if (splitType) for (const [ts, item] of Object.entries(events.splits || {})) {
     const ex = date(Number(ts)); const split = String(item?.numerator ?? ''); const [n,d] = split.split(':').map(Number);
     if (!ex || !Number.isFinite(n) || !Number.isFinite(d)) continue;
-    await sb('market.corporate_actions', { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ instrument_id:stock.instrument_id, corporate_action_type_id:splitType, ex_date:ex, effective_date:ex, ratio_numerator:n, ratio_denominator:d, description:`Yahoo Finance split ${n}:${d}`, source_id:YAHOO_SOURCE, currency_id:INR }) }).catch(async e => { if (!String(e.message).includes('409')) throw e; });
+    await sb('market.corporate_actions', { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ instrument_id:stock.instrument_id, corporate_action_type_id:splitType, ex_date:ex, effective_date:ex, ratio_numerator:n, ratio_denominator:d, description:`Yahoo Finance split ${n}:${d}`, source_id:YAHOO_SOURCE, currency_id:INR }) });
   }
 }
 
@@ -62,8 +61,8 @@ async function ingestNseShareholding(stock, categories) {
   const aliases = { PROMOTER:'PROMOTER', FII:'FII', FOREIGN:'FII', DII:'DII', DOMESTIC_INSTITUTION:'DII', PUBLIC:'PUBLIC', RETAIL:'RETAIL', GOVERNMENT:'GOVERNMENT' };
   for (const row of rows) {
     const raw = norm(row?.category ?? row?.categoryName ?? row?.shareholderCategory ?? row?.type);
-    const code = aliases[raw] || Object.keys(aliases).find(k => raw.includes(k)) && aliases[Object.keys(aliases).find(k => raw.includes(k))];
-    const categoryId = code && categories[code];
+    const match = Object.keys(aliases).find(k => raw === k || raw.includes(k));
+    const categoryId = match ? categories[aliases[match]] : null;
     const pct = number(row?.percentage ?? row?.percentageHolding ?? row?.percentShareholding ?? row?.shareholdingPercentage);
     const shares = number(row?.shares ?? row?.sharesHeld ?? row?.noOfShares);
     if (!categoryId || (pct == null && shares == null)) continue;
@@ -73,13 +72,19 @@ async function ingestNseShareholding(stock, categories) {
 }
 
 async function ingestPeers(stocks) {
+  const companies = await sb('market.companies?select=company_id,industry_id,sector_id');
+  const meta = new Map(companies.map(c => [c.company_id, c]));
   const groups = new Map();
-  for (const s of stocks) { const key = s.industry_id || s.sector_id || 'UNKNOWN'; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(s); }
+  for (const s of stocks) {
+    const c = meta.get(s.company_id); const key = c?.industry_id || c?.sector_id;
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(s);
+  }
   for (const members of groups.values()) {
-    if (members.length < 2) continue;
     for (const company of members) for (const peer of members) {
       if (company.company_id === peer.company_id) continue;
-      await sb('market.company_peers', { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ company_id:company.company_id, peer_company_id:peer.company_id, relationship_type:'INDUSTRY_PEER', source_id:YAHOO_SOURCE }) }).catch(async e => { if (!String(e.message).includes('409')) throw e; });
+      await sb('market.company_peers', { method:'POST', headers:{ Prefer:'resolution=ignore-duplicates,return=minimal' }, body:JSON.stringify({ company_id:company.company_id, peer_company_id:peer.company_id, relationship_type:'INDUSTRY_PEER', source_id:YAHOO_SOURCE }) });
     }
   }
 }
