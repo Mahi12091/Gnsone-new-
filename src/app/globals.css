@@ -49,7 +49,8 @@ main .rounded-2xl, main .rounded-\[28px\] { max-width: 100%; }
 footer > div > div:last-child { text-align: center !important; justify-content: center !important; }
 
 /* Shared mobile menu fix — keeps every navigation label horizontal. */
-.gns-mobile-menu {
+.gns-mobile-menu,
+header details > div {
   width: 280px !important;
   max-width: calc(100vw - 32px) !important;
   writing-mode: horizontal-tb !important;
@@ -59,7 +60,11 @@ footer > div > div:last-child { text-align: center !important; justify-content: 
 .gns-mobile-menu nav,
 .gns-mobile-menu a,
 .gns-mobile-menu div,
-.gns-mobile-menu span {
+.gns-mobile-menu span,
+header details > div,
+header details > div a,
+header details > div div,
+header details > div span {
   writing-mode: horizontal-tb !important;
   text-orientation: mixed !important;
   direction: ltr !important;
@@ -69,13 +74,15 @@ footer > div > div:last-child { text-align: center !important; justify-content: 
   letter-spacing: normal !important;
 }
 .gns-mobile-menu nav,
-.gns-mobile-menu .gns-mobile-nav-list {
+.gns-mobile-menu .gns-mobile-nav-list,
+header details > div {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
   min-width: 0 !important;
 }
-.gns-mobile-menu a {
+.gns-mobile-menu a,
+header details > div a {
   display: flex !important;
   width: 100% !important;
   min-width: 0 !important;
