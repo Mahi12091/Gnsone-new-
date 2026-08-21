@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: gnsone-market-ingestion
+  cancel-in-progress: true
+
 jobs:
   ingest:
     runs-on: ubuntu-latest
