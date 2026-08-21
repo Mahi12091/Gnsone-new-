@@ -12,6 +12,7 @@ function FooterLinks({ items }: { items: string[][] }) {
 }
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
+  const year = new Date().getFullYear();
   return <div className="gns-light-page min-h-screen bg-white text-slate-950">
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-7 px-4 sm:px-6 lg:px-7">
@@ -19,7 +20,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <nav className="hidden items-center gap-5 text-[13px] text-slate-600 xl:flex" aria-label="Primary navigation">{links.map(([label, href]) => <Link key={href} href={href} className="font-medium transition hover:text-slate-950">{label}</Link>)}</nav>
         <div className="ml-auto flex items-center gap-2">
           <Link href="/stocks" className="hidden rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-950 xl:block">Search</Link>
-          <Link href="/login" className="hidden rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 xl:block">Sign in</Link>
+          <Link href="/signin" className="hidden rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 xl:block">Sign in</Link>
           <details className="relative xl:hidden">
             <summary className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label="Open navigation menu"><span className="flex flex-col gap-1.5"><span className="h-0.5 w-5 bg-current" /><span className="h-0.5 w-5 bg-current" /><span className="h-0.5 w-5 bg-current" /></span></summary>
             <div className="gns-mobile-menu absolute right-0 top-12 z-[60] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60" style={{ width: "280px", maxWidth: "calc(100vw - 32px)", minWidth: "0" }}>
@@ -27,7 +28,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 {links.map(([label, href]) => <Link key={href} href={href} className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb", textOrientation: "mixed", overflowWrap: "normal", wordBreak: "normal" }}>{label}</Link>)}
                 <div className="my-2 border-t border-slate-100" />
                 <Link href="/stocks" className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb" }}>Search</Link>
-                <Link href="/login" className="block rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb" }}>Sign in</Link>
+                <Link href="/signin" className="block rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb" }}>Sign in</Link>
               </nav>
             </div>
           </details>
@@ -35,7 +36,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       </div>
     </header>
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-7">{children}</main>
-    <footer className="mt-8 border-t border-slate-200 bg-white"><div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 lg:px-7"><div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]"><div><Link href="/" className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500 text-sm font-black text-white">G</span><span className="font-bold text-slate-900">GNSOne</span></Link><p className="mt-4 max-w-xs text-xs leading-5 text-slate-500">Research smarter. Invest with clarity.</p><p className="mt-5 max-w-sm text-[10px] leading-5 text-slate-400">Market data and research are provided for informational purposes and may be delayed. GNSOne does not provide personalized investment advice.</p></div><div><p className="text-xs font-bold text-slate-900">Explore</p><FooterLinks items={footerExplore} /></div><div><p className="text-xs font-bold text-slate-900">Tools</p><FooterLinks items={footerTools} /></div><div><p className="text-xs font-bold text-slate-900">Company</p><FooterLinks items={footerCompany} /></div></div><div className="mt-10 border-t border-slate-100 pt-5 text-center text-[10px] leading-5 text-slate-400"><p>© 2026 GNSOne. All rights reserved.</p><p>Investment research · Market intelligence</p></div></div></footer>
+    <footer className="mt-8 border-t border-slate-200 bg-white"><div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 lg:px-7"><div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]"><div><Link href="/" className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500 text-sm font-black text-white">G</span><span className="font-bold text-slate-900">GNSOne</span></Link><p className="mt-4 max-w-xs text-xs leading-5 text-slate-500">Research smarter. Invest with clarity.</p><p className="mt-5 max-w-sm text-[10px] leading-5 text-slate-400">Market data and research are provided for informational purposes and may be delayed. GNSOne does not provide personalized investment advice.</p></div><div><p className="text-xs font-bold text-slate-900">Explore</p><FooterLinks items={footerExplore} /></div><div><p className="text-xs font-bold text-slate-900">Tools</p><FooterLinks items={footerTools} /></div><div><p className="text-xs font-bold text-slate-900">Company</p><FooterLinks items={footerCompany} /></div></div><div className="mt-10 border-t border-slate-100 pt-5 text-center text-[10px] leading-5 text-slate-400"><p>© {year} GNSOne. All rights reserved.</p><p>Investment research · Market intelligence</p></div></div></footer>
   </div>;
 }
 
