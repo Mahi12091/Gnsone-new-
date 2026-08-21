@@ -1,0 +1,3 @@
+export default function Loading() {
+  return <main className="min-h-screen bg-white px-6 py-20 text-center text-slate-950"><div className="mx-auto max-w-xl"><span className="inline-grid h-12 w-12 place-items-center rounded-xl bg-emerald-500 font-black text-white">G</span><p className="mt-8 text-xs font-bold uppercase tracking-[.2em] text-emerald-600">Loading research</p><h1 className="mt-3 text-3xl font-semibold tracking-tight">Preparing your GNSOne view…</h1><div className="mx-auto mt-7 h-2 max-w-xs overflow-hidden rounded-full bg-slate-100"><div className="h-full w-1/2 animate-pulse rounded-full bg-emerald-400" /></div></div></main>;
+}
