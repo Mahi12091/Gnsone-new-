@@ -49,67 +49,74 @@ async function main() {
     const symbol = exchange === 'NSE' ? listing.symbol : listing.exchange_security_code;
     const identifierCode = exchange === 'NSE' ? 'NSE_SYMBOL' : 'BSE_CODE';
     const sourceId = exchange === 'NSE' ? SOURCE_NSE : SOURCE_BSE;
-    if (symbol) {
-      const existing = await sb(`instrument_identifiers?instrument_id=eq.${listing.instrument_id}&identifier_type_id=eq.${typeId[identifierCode]}&identifier_value=eq.${encodeURIComponent(symbol)}&is_current=eq.true&select=instrument_identifier_id`, {}, 'market');
-      if (!existing?.length) {
-        await sb('instrument_identifiers', {
-          method: 'POST',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ instrument_id: listing.instrument_id, identifier_type_id: typeId[identifierCode], identifier_value: symbol, valid_from: listing.listing_date ?? new Date().toISOString().slice(0, 10), is_current: true, source_id: sourceId }),
-        }, 'market');
-      }
-      identifierCount += 1;
+    if (!symbol) continue;
 
-      const history = await sb(`listing_symbols_history?listing_id=eq.${listing.listing_id}&symbol=eq.${encodeURIComponent(listing.symbol || symbol)}&is_current=eq.true&select=listing_symbol_history_id`, {}, 'market');
-      if (!history?.length && listing.symbol) {
-        await sb('listing_symbols_history', {
-          method: 'POST',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ listing_id: listing.listing_id, symbol: listing.symbol, valid_from: listing.listing_date ?? new Date().toISOString().slice(0, 10), is_current: true, reason: 'INITIAL_CANONICAL_SYMBOL', source_id: sourceId }),
-        }, 'market');
-      }
-      historyCount += 1;
+    const existing = await sb(`instrument_identifiers?instrument_id=eq.${listing.instrument_id}&identifier_type_id=eq.${typeId[identifierCode]}&identifier_value=eq.${encodeURIComponent(symbol)}&is_current=eq.true&select=instrument_identifier_id`, {}, 'market');
+    if (!existing?.length) {
+      await sb('instrument_identifiers', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          instrument_id: listing.instrument_id,
+          identifier_type_id: typeId[identifierCode],
+          identifier_value: symbol,
+          valid_from: listing.listing_date ?? new Date().toISOString().slice(0, 10),
+          is_current: true,
+          source_id: sourceId,
+        }),
+      }, 'market');
     }
+    identifierCount += 1;
+
+    const history = await sb(`listing_symbols_history?listing_id=eq.${listing.listing_id}&symbol=eq.${encodeURIComponent(listing.symbol || symbol)}&is_current=eq.true&select=listing_symbol_history_id`, {}, 'market');
+    if (!history?.length && listing.symbol) {
+      await sb('listing_symbols_history', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          listing_id: listing.listing_id,
+          symbol: listing.symbol,
+          valid_from: listing.listing_date ?? new Date().toISOString().slice(0, 10),
+          is_current: true,
+          reason: 'INITIAL_CANONICAL_SYMBOL',
+          source_id: sourceId,
+        }),
+      }, 'market');
+    }
+    historyCount += 1;
   }
 
-  // Create a canonical all-equities screener snapshot from the latest published score/price layer.
+  // Canonical backend verification uses only schemas exposed by the current
+  // Supabase PostgREST configuration. The previous implementation attempted
+  // to call an `analytics` schema, but this project currently exposes only
+  // public, graphql_public, market, reference and ingestion. Screener/derived
+  // analytics can be enabled later without making core ingestion fail.
   const latestSnapshots = await sb('rpc/gns_get_stock_snapshots', {
     method: 'POST',
     body: JSON.stringify({ p_limit: 5000 }),
   });
   const asOf = (latestSnapshots ?? []).map((x) => x.price_date).filter(Boolean).sort().at(-1) ?? new Date().toISOString().slice(0, 10);
-  const existingScreener = await sb('screener_snapshots?code=eq.ALL_EQUITIES&select=screener_snapshot_id', {}, 'analytics');
-  let snapshotId = existingScreener?.[0]?.screener_snapshot_id;
-  if (!snapshotId) {
-    const created = await sb('screener_snapshots', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ code: 'ALL_EQUITIES', name: 'All Equity Research Universe', description: 'Canonical snapshot of the published equity research universe.', criteria: { universe: 'equity', score: true, latest_price: true }, as_of_date: asOf }),
-    }, 'analytics');
-    snapshotId = created?.[0]?.screener_snapshot_id;
-  }
-  if (!snapshotId) throw new Error('Unable to create canonical screener snapshot');
-
-  for (let i = 0; i < (latestSnapshots ?? []).length; i += 1) {
-    const stock = latestSnapshots[i];
-    const exists = await sb(`screener_snapshot_rows?screener_snapshot_id=eq.${snapshotId}&instrument_id=eq.${stock.instrument_id}&select=screener_snapshot_row_id`, {}, 'analytics');
-    if (exists?.length) continue;
-    await sb('screener_snapshot_rows', {
-      method: 'POST',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ screener_snapshot_id: snapshotId, instrument_id: stock.instrument_id, rank: i + 1, metrics: { price: stock.latest_price, price_date: stock.price_date, gns_score: stock.score, nse_symbol: stock.nse_symbol } }),
-    }, 'analytics');
-  }
 
   const counts = {
     instruments: (await sb('instruments?select=instrument_id&limit=5000', {}, 'market'))?.length ?? 0,
     listings: (await sb('listings?select=listing_id&limit=5000', {}, 'market'))?.length ?? 0,
     identifiers: (await sb('instrument_identifiers?select=instrument_identifier_id&limit=10000', {}, 'market'))?.length ?? 0,
     symbol_history: (await sb('listing_symbols_history?select=listing_symbol_history_id&limit=10000', {}, 'market'))?.length ?? 0,
-    screener_rows: (await sb('screener_snapshot_rows?select=screener_snapshot_row_id&limit=10000', {}, 'analytics'))?.length ?? 0,
   };
-  console.log(JSON.stringify({ ok: true, counts, identifier_writes: identifierCount, history_writes: historyCount, as_of: asOf }));
-  if (counts.instruments > 0 && counts.identifiers === 0) process.exit(1);
+
+  const result = {
+    ok: true,
+    counts,
+    identifier_writes: identifierCount,
+    history_writes: historyCount,
+    as_of: asOf,
+    analytics_screener: 'SKIPPED_UNEXPOSED_SCHEMA',
+  };
+  console.log(JSON.stringify(result));
+
+  if (counts.instruments > 0 && counts.identifiers === 0) {
+    throw new Error('Canonical instruments exist but no current identifiers were finalized');
+  }
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });
