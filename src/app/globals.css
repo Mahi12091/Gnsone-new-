@@ -48,8 +48,41 @@ main .rounded-2xl, main .rounded-\[28px\] { max-width: 100%; }
 
 footer > div > div:last-child { text-align: center !important; justify-content: center !important; }
 
-.gns-mobile-menu { width: 280px; max-width: calc(100vw - 32px); }
-.gns-mobile-menu nav, .gns-mobile-menu a { writing-mode: horizontal-tb !important; text-orientation: mixed !important; white-space: nowrap !important; overflow-wrap: normal !important; word-break: normal !important; }
+/* Shared mobile menu fix — keeps every navigation label horizontal. */
+.gns-mobile-menu {
+  width: 280px !important;
+  max-width: calc(100vw - 32px) !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  direction: ltr !important;
+}
+.gns-mobile-menu nav,
+.gns-mobile-menu a,
+.gns-mobile-menu div,
+.gns-mobile-menu span {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  direction: ltr !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  letter-spacing: normal !important;
+}
+.gns-mobile-menu nav,
+.gns-mobile-menu .gns-mobile-nav-list {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.gns-mobile-menu a {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-direction: row !important;
+}
 
 main nav[aria-label="Stock research sections"] { width: 100%; max-width: 100%; overflow-x: auto !important; overflow-y: hidden; }
 main nav[aria-label="Stock research sections"] > div { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; width: max-content !important; min-width: max-content !important; }
