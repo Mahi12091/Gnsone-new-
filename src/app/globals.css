@@ -98,6 +98,23 @@ main nav[aria-label="Stock research sections"] a { display: block !important; fl
 @media (max-width: 639px) {
   header > div { padding-left: 16px !important; padding-right: 16px !important; }
   main > section > div { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Keep the open mobile navigation inside the viewport instead of allowing
+     an ancestor/header overflow context to clip its right side. */
+  .gns-mobile-menu,
+  header details > div {
+    position: fixed !important;
+    top: 76px !important;
+    right: 16px !important;
+    left: auto !important;
+    width: 280px !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100dvh - 92px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    z-index: 1000 !important;
+  }
+
   main h1 { font-size: clamp(2.55rem, 12vw, 3.35rem) !important; line-height: .98 !important; letter-spacing: -.055em !important; }
   main h1 span { white-space: normal !important; }
   main .text-lg { line-height: 1.65; }
