@@ -22,12 +22,12 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <Link href="/login" className="hidden rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 xl:block">Sign in</Link>
           <details className="relative xl:hidden">
             <summary className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label="Open navigation menu"><span className="flex flex-col gap-1.5"><span className="h-0.5 w-5 bg-current" /><span className="h-0.5 w-5 bg-current" /><span className="h-0.5 w-5 bg-current" /></span></summary>
-            <div className="gns-mobile-menu absolute right-0 top-12 z-[60] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60">
-              <nav aria-label="Mobile navigation" className="space-y-1">
-                {links.map(([label, href]) => <Link key={href} href={href} className="block whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}
+            <div className="gns-mobile-menu absolute right-0 top-12 z-[60] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/60" style={{ width: "280px", maxWidth: "calc(100vw - 32px)", minWidth: "0" }}>
+              <nav aria-label="Mobile navigation" className="space-y-1" style={{ width: "100%", minWidth: "0", writingMode: "horizontal-tb" }}>
+                {links.map(([label, href]) => <Link key={href} href={href} className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb", textOrientation: "mixed", overflowWrap: "normal", wordBreak: "normal" }}>{label}</Link>)}
                 <div className="my-2 border-t border-slate-100" />
-                <Link href="/stocks" className="block whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950">Search</Link>
-                <Link href="/login" className="block whitespace-nowrap rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Sign in</Link>
+                <Link href="/stocks" className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb" }}>Search</Link>
+                <Link href="/login" className="block rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" style={{ display: "block", width: "100%", whiteSpace: "nowrap", writingMode: "horizontal-tb" }}>Sign in</Link>
               </nav>
             </div>
           </details>
