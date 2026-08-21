@@ -3,7 +3,7 @@ name: GNSOne Market Ingestion
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/backend-missing-data]
     paths:
       - 'scripts/ingestion/**'
       - '.github/workflows/market-ingestion.yml'
