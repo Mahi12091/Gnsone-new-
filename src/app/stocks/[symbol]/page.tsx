@@ -5,120 +5,243 @@ import { getStockBySymbol, getStockResearchDetail } from "@/lib/data/stock-repos
 
 const missing = "Not available";
 
-function numeric(value: unknown) {
-  const n = Number(value);
-  return value == null || !Number.isFinite(n) ? null : n;
+type AnyRow = Record<string, any>;
+
+function n(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function money(value: unknown) {
-  const n = numeric(value);
-  if (n == null || n <= 0) return missing;
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+function formatValue(key: string, value: unknown): string {
+  if (value == null || value === "") return missing;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (key.includes("date") || key.endsWith("_at")) return new Date(String(value)).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const number = n(value);
+  if (number == null) return String(value);
+  if (key.includes("percentage") || key.includes("margin") || key.includes("yield") || key === "roe" || key === "roa" || key === "roce") return `${number.toFixed(2)}%`;
+  if (key.includes("ratio") || key.includes("multiple") || key === "pe_ratio" || key === "pb_ratio" || key === "ps_ratio" || key === "peg_ratio" || key.includes("ev_")) return `${number.toFixed(2)}x`;
+  return number.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
-function crore(value: unknown) {
-  const n = numeric(value);
-  if (n == null) return missing;
-  return `₹${(n / 1e7).toLocaleString("en-IN", { maximumFractionDigits: 2 })} Cr`;
+function label(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function num(value: unknown, digits = 2) {
-  const n = numeric(value);
-  return n == null ? missing : n.toLocaleString("en-IN", { maximumFractionDigits: digits });
+function money(value: unknown): string {
+  const number = n(value);
+  if (number == null) return missing;
+  return `₹${number.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
 
-function pct(value: unknown) {
-  const n = numeric(value);
-  return n == null ? missing : `${n.toFixed(2)}%`;
+function crore(value: unknown): string {
+  const number = n(value);
+  if (number == null) return missing;
+  return `₹${(number / 1e7).toLocaleString("en-IN", { maximumFractionDigits: 2 })} Cr`;
 }
 
-function multiple(value: unknown) {
-  const n = numeric(value);
-  return n == null || n <= 0 ? missing : `${n.toFixed(2)}x`;
+function Stat({ label: title, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/[.07] bg-white/[.025] p-4">
+      <p className="text-[11px] uppercase tracking-[.14em] text-slate-500">{title}</p>
+      <p className="mt-2 break-words text-lg font-semibold text-slate-100">{value}</p>
+    </div>
+  );
 }
 
-function dateLabel(value: unknown) {
-  if (!value) return missing;
-  return new Date(String(value)).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+function ObjectGrid({ data, financial = false }: { data: AnyRow | null; financial?: boolean }) {
+  if (!data || Object.keys(data).length === 0) return <p className="text-sm text-slate-500">{missing}</p>;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {Object.entries(data).map(([key, value]) => (
+        <Stat key={key} label={label(key)} value={financial && ["revenue", "gross_profit", "operating_profit", "ebit", "ebitda", "profit_before_tax", "tax_expense", "net_income", "operating_cash_flow", "investing_cash_flow", "financing_cash_flow", "capital_expenditure", "free_cash_flow", "total_assets", "current_assets", "cash_and_equivalents", "total_liabilities", "current_liabilities", "total_debt", "net_debt", "shareholders_equity"].includes(key) ? crore(value) : formatValue(key, value)} />
+      ))}
+    </div>
+  );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return <div className="rounded-xl border border-white/[.07] bg-white/[.025] p-4"><p className="text-[11px] uppercase tracking-[.14em] text-slate-500">{label}</p><p className="mt-2 text-lg font-semibold text-slate-100">{value}</p>{hint && <p className="mt-1 text-[11px] text-slate-600">{hint}</p>}</div>;
+function DataTable({ rows, title }: { rows: AnyRow[]; title: string }) {
+  if (!rows.length) return <p className="text-sm text-slate-500">{missing}</p>;
+  const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[900px] text-left text-sm">
+        <thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600">
+          <tr>
+            {columns.map((column) => <th key={column} className="px-4 py-3">{label(column)}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index} className="border-t border-white/[.05]">
+              {columns.map((column) => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-400">{formatValue(column, row[column])}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
-function EmptyState({ text = "This dataset is not available in the current canonical feed." }: { text?: string }) {
-  return <div className="rounded-xl border border-dashed border-white/10 bg-white/[.015] p-6 text-sm leading-6 text-slate-500">{text}</div>;
+function Empty({ text = "No data available in the current canonical feed." }: { text?: string }) {
+  return <div className="rounded-xl border border-dashed border-white/10 bg-white/[.015] p-6 text-sm text-slate-500">{text}</div>;
 }
 
 function PriceChart({ history }: { history: Array<{ date: string; close: number | null }> }) {
-  const points = history.filter((x) => x.close != null).slice(-120);
-  if (points.length < 2) return <EmptyState text="Historical price data is not available yet." />;
-  const values = points.map((x) => Number(x.close));
+  const points = history.filter((point) => point.close != null).slice(-120);
+  if (points.length < 2) return <Empty text="Historical price data is not available yet." />;
+  const values = points.map((point) => Number(point.close));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const coords = points.map((point, index) => `${((index / (points.length - 1)) * 100).toFixed(2)},${(94 - ((Number(point.close) - min) / range) * 84).toFixed(2)}`).join(" ");
-  return <div className="overflow-hidden rounded-xl border border-white/[.07] bg-white/[.02] p-3"><svg viewBox="0 0 100 100" className="h-64 w-full" preserveAspectRatio="none" aria-label="Historical stock price chart"><defs><linearGradient id="gns-stock-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity=".22"/><stop offset="100%" stopColor="#10b981" stopOpacity="0"/></linearGradient></defs><polyline points={`${coords} 100,100 0,100`} fill="url(#gns-stock-fill)"/><polyline points={coords} fill="none" stroke="#10b981" strokeWidth="1.4" vectorEffect="non-scaling-stroke"/></svg><div className="flex justify-between px-1 text-[10px] text-slate-600"><span>{dateLabel(points[0].date)}</span><span>{dateLabel(points[points.length - 1].date)}</span></div></div>;
+  const coordinates = points.map((point, index) => {
+    const x = (index / (points.length - 1)) * 100;
+    const y = 94 - ((Number(point.close) - min) / range) * 84;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/[.07] bg-white/[.02] p-3">
+      <svg viewBox="0 0 100 100" className="h-64 w-full" preserveAspectRatio="none" aria-label="Historical stock price chart">
+        <polyline points={coordinates} fill="none" stroke="#10b981" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div className="flex justify-between text-[10px] text-slate-600"><span>{points[0].date}</span><span>{points[points.length - 1].date}</span></div>
+    </div>
+  );
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }): Promise<Metadata> {
   const { symbol } = await params;
   const stock = await getStockBySymbol(symbol);
-  if (!stock) return { title: `${symbol.toUpperCase()} Stock Research | GNSOne`, description: `Stock research page for ${symbol.toUpperCase()} on GNSOne.` };
-  const exchange = stock.nse_symbol ? `NSE: ${stock.nse_symbol}` : `BSE: ${stock.bse_code ?? symbol.toUpperCase()}`;
-  return { title: `${stock.name} Share Price, Stock Research & GNS Score | GNSOne`, description: `${stock.name} (${exchange}) — complete stock research, price, fundamentals, valuation, growth, technicals and dividends on GNSOne.`, keywords: [stock.name, stock.nse_symbol ?? symbol.toUpperCase(), "share price", "stock research", "GNS Score", "Indian stock market"], alternates: { canonical: `/stocks/${encodeURIComponent(stock.nse_symbol ?? symbol.toUpperCase())}` }, openGraph: { title: `${stock.name} Stock Research | GNSOne`, description: `Complete research profile for ${stock.name} on GNSOne.`, type: "website" } };
+  return {
+    title: stock ? `${stock.name} Share Price & Stock Research | GNSOne` : `${symbol.toUpperCase()} Stock Research | GNSOne`,
+    description: stock ? `Complete stock research for ${stock.name} including price, fundamentals, valuation, ratios, ownership and technical data.` : `Stock research page for ${symbol.toUpperCase()} on GNSOne.`,
+  };
 }
 
 export default async function StockPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const [stock, detail] = await Promise.all([getStockBySymbol(symbol), getStockResearchDetail(symbol)]);
-  if (!stock || !detail) return <SiteShell><PageTitle eyebrow="Stock research" title="Stock not found" description={`No canonical instrument was found for ${symbol.toUpperCase()}.`} /><Link href="/stocks" className="text-sm font-semibold text-emerald-400">← Browse stocks</Link></SiteShell>;
+
+  if (!stock || !detail) {
+    return <SiteShell><PageTitle eyebrow="Stock research" title="Stock not found" description={`No canonical instrument was found for ${symbol.toUpperCase()}.`} /><Link href="/stocks" className="text-sm font-semibold text-emerald-400">← Browse stocks</Link></SiteShell>;
+  }
 
   const price = detail.price;
-  const close = numeric(price?.close) ?? stock.latest_price;
-  const previousClose = numeric(price?.previous_close);
+  const close = n(price?.close) ?? stock.latest_price;
+  const previousClose = n(price?.previous_close);
   const change = close != null && previousClose != null ? close - previousClose : null;
   const changePct = change != null && previousClose ? (change / previousClose) * 100 : null;
-  const score = numeric(detail.score?.overall) ?? stock.score;
+  const score = n(detail.score?.overall) ?? stock.score;
   const financials = detail.financials;
-  const ratios = detail.ratios;
   const valuation = detail.valuation;
-  const moduleLinks = [["Overview", "#overview"], ["Price", "#price"], ["GNS Score", "#gns-score"], ["Fundamentals", "#fundamentals"], ["Financial History", "#financial-history"], ["Valuation", "#valuation"], ["Growth & Ratios", "#growth"], ["Shareholding", "#shareholding"], ["Technicals", "#technicals"], ["Dividends", "#dividends"], ["Corporate Actions", "#corporate-actions"], ["Instrument", "#instrument"]] as const;
 
-  const jsonLd = { "@context": "https://schema.org", "@type": "WebPage", name: `${stock.name} Stock Research`, description: `Complete research page for ${stock.name} on GNSOne.`, about: { "@type": "Corporation", name: stock.name, tickerSymbol: stock.nse_symbol ? `NSE:${stock.nse_symbol}` : undefined }, isPartOf: { "@type": "WebSite", name: "GNSOne", url: "https://gnsone.com" } };
+  const sections = [
+    ["Overview", "#overview"], ["Price", "#price"], ["GNS Score", "#gns-score"], ["Fundamentals", "#fundamentals"], ["Financial History", "#financial-history"], ["Valuation", "#valuation"], ["Growth & Ratios", "#growth"], ["Shareholding", "#shareholding"], ["Technicals", "#technicals"], ["Dividends", "#dividends"], ["Corporate Actions", "#corporate-actions"], ["Instrument", "#instrument"]
+  ] as const;
 
-  return <SiteShell>
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-    <section id="overview" className="mb-6 scroll-mt-24"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><PageTitle eyebrow="Complete stock research" title={stock.name} description={`${detail.instrument.nse_symbol ? `NSE: ${detail.instrument.nse_symbol}` : `BSE: ${detail.instrument.bse_code ?? "—"}`} · Market, fundamentals, valuation, growth, ownership and technical research.` /><div className="flex flex-wrap gap-2 text-xs text-slate-500"><span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.instrument_type ?? "Equity"}</span>{detail.instrument.sector && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.sector}</span>}{detail.instrument.industry && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.industry}</span>}<span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.currency ?? "INR"}</span></div></div><Link href="/stocks" className="shrink-0 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/5">← All stocks</Link></div></section>
+  return (
+    <SiteShell>
+      <section id="overview" className="mb-6 scroll-mt-24">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <PageTitle eyebrow="Complete stock research" title={stock.name} description={`${detail.instrument.nse_symbol ? `NSE: ${detail.instrument.nse_symbol}` : `BSE: ${detail.instrument.bse_code ?? "—"}`} · Complete market, financial, valuation, growth and ownership research.`} />
+            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+              <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.instrument_type ?? "Equity"}</span>
+              {detail.instrument.sector && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.sector}</span>}
+              {detail.instrument.industry && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.industry}</span>}
+              <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.currency ?? "INR"}</span>
+            </div>
+          </div>
+          <Link href="/stocks" className="shrink-0 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/5">← All stocks</Link>
+        </div>
+      </section>
 
-    <nav aria-label="Stock research sections" className="sticky top-2 z-20 mb-6 overflow-x-auto rounded-xl border border-white/[.07] bg-[#0b1727]/95 p-2 shadow-xl backdrop-blur"><div className="flex min-w-max gap-1">{moduleLinks.map(([label, href]) => <a key={href} href={href} className="rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-white">{label}</a>)}</div></nav>
+      <nav aria-label="Stock research sections" className="sticky top-2 z-20 mb-6 overflow-x-auto rounded-xl border border-white/[.07] bg-[#0b1727]/95 p-2 shadow-xl backdrop-blur">
+        <div className="flex min-w-max gap-1">{sections.map(([name, href]) => <a key={href} href={href} className="rounded-lg px-3 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-white">{name}</a>)}</div>
+      </nav>
 
-    <div className="grid gap-5 lg:grid-cols-[1.7fr_.8fr]">
-      <Card id="price" className="p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-[.16em] text-slate-500">{detail.instrument.nse_symbol ? `NSE · ${detail.instrument.nse_symbol}` : `BSE · ${detail.instrument.bse_code ?? "—"}`}</p><p className="mt-3 text-4xl font-semibold tracking-tight text-slate-100 sm:text-5xl">{money(close)}</p>{change != null ? <p className={`mt-2 text-sm font-semibold ${change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{change >= 0 ? "+" : ""}{money(change)} ({changePct?.toFixed(2)}%) vs previous close</p> : <p className="mt-2 text-sm text-slate-500">Price change unavailable</p>}</div><div className="text-right text-xs text-slate-500">As of<br /><span className="text-slate-300">{dateLabel(price?.date ?? stock.price_date)}</span></div></div><div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4"><Stat label="Open" value={money(price?.open)} /><Stat label="High" value={money(price?.high)} /><Stat label="Low" value={money(price?.low)} /><Stat label="Previous close" value={money(price?.previous_close)} /></div><div className="mt-4"><PriceChart history={detail.price_history} /></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4"><Stat label="52W high" value={money(price?.week_52_high ?? detail.range_52w?.high)} /><Stat label="52W low" value={money(price?.week_52_low ?? detail.range_52w?.low)} /><Stat label="Volume" value={num(price?.volume, 0)} /><Stat label="Turnover" value={crore(price?.turnover)} /><Stat label="Upper circuit" value={money(price?.upper_circuit)} /><Stat label="Lower circuit" value={money(price?.lower_circuit)} /><Stat label="Delivery qty" value={num(price?.delivery_quantity, 0)} /><Stat label="Delivery %" value={pct(price?.delivery_percentage)} /></div></Card>
+      <div className="grid gap-5 lg:grid-cols-[1.7fr_.8fr]">
+        <Card id="price" className="p-5 sm:p-6">
+          <p className="text-xs uppercase tracking-[.16em] text-slate-500">{detail.instrument.nse_symbol ? `NSE · ${detail.instrument.nse_symbol}` : `BSE · ${detail.instrument.bse_code ?? "—"}`}</p>
+          <p className="mt-3 text-4xl font-semibold tracking-tight text-slate-100 sm:text-5xl">{money(close)}</p>
+          {change != null ? <p className={`mt-2 text-sm font-semibold ${change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{change >= 0 ? "+" : ""}{money(change)} ({changePct?.toFixed(2)}%) vs previous close</p> : <p className="mt-2 text-sm text-slate-500">Price change unavailable</p>}
+          <p className="mt-2 text-xs text-slate-600">As of {price?.date ?? stock.price_date ?? missing}</p>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4"><Stat label="Open" value={money(price?.open)} /><Stat label="High" value={money(price?.high)} /><Stat label="Low" value={money(price?.low)} /><Stat label="Previous Close" value={money(price?.previous_close)} /></div>
+          <div className="mt-4"><PriceChart history={detail.price_history} /></div>
+          <div className="mt-4"><ObjectGrid data={price} /></div>
+        </Card>
 
-      <Card id="gns-score" className="p-6"><p className="text-xs uppercase tracking-[.16em] text-slate-500">GNS Score</p><p className="mt-3 text-6xl font-bold tracking-tight text-emerald-300">{score == null ? "—" : Math.round(score)}</p><p className="mt-2 text-sm text-slate-500">Latest calculated research score</p><p className="mt-2 text-xs text-slate-600">As of {dateLabel(detail.score?.as_of_date)}</p><div className="mt-7 space-y-3">{([["Quality", detail.score?.quality], ["Valuation", detail.score?.valuation], ["Growth", detail.score?.growth], ["Momentum", detail.score?.momentum], ["Risk", detail.score?.risk]] as const).map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-xs"><span className="text-slate-500">{label}</span><span className="font-semibold text-slate-300">{value == null ? "—" : Math.round(Number(value))}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-emerald-400" style={{ width: `${Math.max(0, Math.min(100, Number(value ?? 0)))}%` }} /></div></div>)}</div></Card>
-    </div>
+        <Card id="gns-score" className="p-6">
+          <p className="text-xs uppercase tracking-[.16em] text-slate-500">GNS Score</p>
+          <p className="mt-3 text-6xl font-bold tracking-tight text-emerald-300">{score == null ? "—" : Math.round(score)}</p>
+          <p className="mt-2 text-sm text-slate-500">Latest calculated research score</p>
+          <p className="mt-2 text-xs text-slate-600">As of {detail.score?.as_of_date ?? missing}</p>
+          <div className="mt-7"><ObjectGrid data={detail.score} /></div>
+        </Card>
+      </div>
 
-    <section className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><Card className="p-5"><p className="text-xs text-slate-500">Market identity</p><p className="mt-2 font-semibold">{detail.instrument.nse_symbol ?? detail.instrument.bse_code ?? missing}</p><p className="mt-1 text-xs text-slate-600">{detail.instrument.company_display_name ?? stock.name}</p></Card><Card className="p-5"><p className="text-xs text-slate-500">Market cap</p><p className="mt-2 font-semibold">{crore(valuation?.market_cap)}</p><p className="mt-1 text-xs text-slate-600">Latest valuation snapshot</p></Card><Card className="p-5"><p className="text-xs text-slate-500">Shares outstanding</p><p className="mt-2 font-semibold">{num(detail.equity_profile?.shares_outstanding ?? financials?.shares_outstanding, 0)}</p><p className="mt-1 text-xs text-slate-600">Canonical equity profile</p></Card><Card className="p-5"><p className="text-xs text-slate-500">Enterprise value</p><p className="mt-2 font-semibold">{crore(valuation?.enterprise_value)}</p><p className="mt-1 text-xs text-slate-600">Latest valuation snapshot</p></Card></section>
+      <section className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-5"><Stat label="Market Identity" value={detail.instrument.nse_symbol ?? detail.instrument.bse_code ?? missing} /></Card>
+        <Card className="p-5"><Stat label="Market Cap" value={crore(valuation?.market_cap)} /></Card>
+        <Card className="p-5"><Stat label="Shares Outstanding" value={formatValue("shares_outstanding", detail.equity_profile?.shares_outstanding)} /></Card>
+        <Card className="p-5"><Stat label="Enterprise Value" value={crore(valuation?.enterprise_value)} /></Card>
+      </section>
 
-    <section id="fundamentals" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Fundamentals" title="Business & financial fundamentals" description="Latest financial statement values already available in the database."/><Card className="p-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="Revenue" value={crore(financials?.revenue)} /><Stat label="Gross profit" value={crore(financials?.gross_profit)} /><Stat label="Operating profit" value={crore(financials?.operating_profit)} /><Stat label="EBIT" value={crore(financials?.ebit)} /><Stat label="EBITDA" value={crore(financials?.ebitda)} /><Stat label="Profit before tax" value={crore(financials?.profit_before_tax)} /><Stat label="Tax expense" value={crore(financials?.tax_expense)} /><Stat label="Net profit" value={crore(financials?.net_income)} /><Stat label="EPS" value={money(financials?.eps)} /><Stat label="Operating cash flow" value={crore(financials?.operating_cash_flow)} /><Stat label="Investing cash flow" value={crore(financials?.investing_cash_flow)} /><Stat label="Financing cash flow" value={crore(financials?.financing_cash_flow)} /><Stat label="Capital expenditure" value={crore(financials?.capital_expenditure)} /><Stat label="Free cash flow" value={crore(financials?.free_cash_flow)} /><Stat label="Total assets" value={crore(financials?.total_assets)} /><Stat label="Current assets" value={crore(financials?.current_assets)} /><Stat label="Cash & equivalents" value={crore(financials?.cash_and_equivalents)} /><Stat label="Total liabilities" value={crore(financials?.total_liabilities)} /><Stat label="Current liabilities" value={crore(financials?.current_liabilities)} /><Stat label="Total debt" value={crore(financials?.total_debt)} /><Stat label="Net debt" value={crore(financials?.net_debt)} /><Stat label="Shareholders equity" value={crore(financials?.shareholders_equity)} /><Stat label="Book value / share" value={money(financials?.book_value_per_share)} /><Stat label="Shares outstanding" value={num(financials?.shares_outstanding, 0)} /></div></Card></section>
+      <section id="fundamentals" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Fundamentals" title="Business & financial fundamentals" description="Every field currently returned by the financial dataset is displayed." />
+        <Card className="p-5"><ObjectGrid data={financials} financial /></Card>
+      </section>
 
-    <section id="financial-history" className="mt-10 scroll-mt-24"><PageTitle eyebrow="History" title="Financial statement history" description={`${detail.financial_history.length} financial period${detail.financial_history.length === 1 ? "" : "s"} available in the current database feed.`}/><Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[1100px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">Period</th><th>Revenue</th><th>EBITDA</th><th>Net profit</th><th>EPS</th><th>OCF</th><th>FCF</th><th>Debt</th><th>Assets</th><th>Equity</th></tr></thead><tbody>{detail.financial_history.length ? detail.financial_history.map((row, index) => <tr key={index} className="border-t border-white/[.05]"><td className="px-5 py-4 font-medium text-slate-300">{row.period_type ?? "—"} · FY{row.fiscal_year ?? "—"}<br /><span className="text-[11px] text-slate-600">{dateLabel(row.period_end)}</span></td><td className="text-slate-400">{crore(row.revenue)}</td><td className="text-slate-400">{crore(row.ebitda)}</td><td className="text-slate-400">{crore(row.net_income)}</td><td className="text-slate-400">{money(row.eps)}</td><td className="text-slate-400">{crore(row.operating_cash_flow)}</td><td className="text-slate-400">{crore(row.free_cash_flow)}</td><td className="text-slate-400">{crore(row.total_debt)}</td><td className="text-slate-400">{crore(row.total_assets)}</td><td className="text-slate-400">{crore(row.shareholders_equity)}</td></tr>) : <tr><td colSpan={10} className="px-5 py-8"><EmptyState /></td></tr>}</tbody></table></div></Card></section>
+      <section id="financial-history" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="History" title="Financial statement history" description={`${detail.financial_history.length} financial period${detail.financial_history.length === 1 ? "" : "s"} available.`} />
+        <Card className="overflow-hidden"><DataTable rows={detail.financial_history} title="Financial history" /></Card>
+      </section>
 
-    <section id="valuation" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Valuation" title="Valuation metrics" description="Latest relative valuation metrics plus every available valuation snapshot."/><Card className="p-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="Market cap" value={crore(valuation?.market_cap)} /><Stat label="Enterprise value" value={crore(valuation?.enterprise_value)} /><Stat label="P/E ratio" value={multiple(valuation?.pe_ratio)} /><Stat label="P/B ratio" value={multiple(valuation?.pb_ratio)} /><Stat label="P/S ratio" value={multiple(valuation?.ps_ratio)} /><Stat label="PEG ratio" value={multiple(valuation?.peg_ratio)} /><Stat label="EV / EBITDA" value={multiple(valuation?.ev_ebitda)} /><Stat label="EV / EBIT" value={multiple(valuation?.ev_ebit)} /><Stat label="Dividend yield" value={pct(valuation?.dividend_yield)} /><Stat label="Earnings yield" value={pct(valuation?.earnings_yield)} /></div></Card>{detail.valuation_history.length > 0 && <Card className="mt-4 overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">As of</th><th>Price</th><th>Market cap</th><th>EV</th><th>P/E</th><th>P/B</th><th>P/S</th><th>PEG</th><th>EV/EBITDA</th></tr></thead><tbody>{detail.valuation_history.map((row, index) => <tr key={index} className="border-t border-white/[.05]"><td className="px-5 py-4 text-slate-300">{dateLabel(row.as_of_date)}</td><td className="text-slate-400">{money(row.price)}</td><td className="text-slate-400">{crore(row.market_cap)}</td><td className="text-slate-400">{crore(row.enterprise_value)}</td><td className="text-slate-400">{multiple(row.pe_ratio)}</td><td className="text-slate-400">{multiple(row.pb_ratio)}</td><td className="text-slate-400">{multiple(row.ps_ratio)}</td><td className="text-slate-400">{multiple(row.peg_ratio)}</td><td className="text-slate-400">{multiple(row.ev_ebitda)}</td></tr>)}</tbody></table></div></Card>}</section>
+      <section id="valuation" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Valuation" title="Valuation metrics" description="Latest valuation plus every available historical valuation snapshot." />
+        <Card className="p-5"><ObjectGrid data={valuation} /></Card>
+        <Card className="mt-4 overflow-hidden"><DataTable rows={detail.valuation_history} title="Valuation history" /></Card>
+      </section>
 
-    <section id="growth" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Growth & profitability" title="Ratios, margins, growth and financial health" description="Every currently available ratio field is surfaced instead of leaving populated database values hidden."/><Card className="p-5"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="ROE" value={pct(ratios?.roe)} /><Stat label="ROA" value={pct(ratios?.roa)} /><Stat label="ROCE" value={pct(ratios?.roce)} /><Stat label="Gross margin" value={pct(ratios?.gross_margin)} /><Stat label="Operating margin" value={pct(ratios?.operating_margin)} /><Stat label="Net margin" value={pct(ratios?.net_margin)} /><Stat label="EBITDA margin" value={pct(ratios?.ebitda_margin)} /><Stat label="Debt / Equity" value={num(ratios?.debt_to_equity)} /><Stat label="Interest coverage" value={num(ratios?.interest_coverage)} /><Stat label="Current ratio" value={num(ratios?.current_ratio)} /><Stat label="Quick ratio" value={num(ratios?.quick_ratio)} /><Stat label="Cash ratio" value={num(ratios?.cash_ratio)} /><Stat label="Asset turnover" value={num(ratios?.asset_turnover)} /><Stat label="Revenue growth 1Y" value={pct(ratios?.revenue_growth_1y)} /><Stat label="Revenue CAGR 3Y" value={pct(ratios?.revenue_cagr_3y)} /><Stat label="Revenue CAGR 5Y" value={pct(ratios?.revenue_cagr_5y)} /><Stat label="Profit growth 1Y" value={pct(ratios?.profit_growth_1y)} /><Stat label="Profit CAGR 3Y" value={pct(ratios?.profit_cagr_3y)} /><Stat label="Profit CAGR 5Y" value={pct(ratios?.profit_cagr_5y)} /><Stat label="EPS growth 1Y" value={pct(ratios?.eps_growth_1y)} /><Stat label="EPS CAGR 3Y" value={pct(ratios?.eps_cagr_3y)} /><Stat label="EPS CAGR 5Y" value={pct(ratios?.eps_cagr_5y)} /><Stat label="Book value growth 1Y" value={pct(ratios?.book_value_growth_1y)} /><Stat label="FCF growth 1Y" value={pct(ratios?.fcf_growth_1y)} /></div></Card>{detail.ratio_history.length > 1 && <Card className="mt-4 overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">As of</th><th>ROE</th><th>ROCE</th><th>Net margin</th><th>D/E</th><th>Current ratio</th><th>Revenue growth</th><th>Profit growth</th><th>EPS growth</th></tr></thead><tbody>{detail.ratio_history.map((row, index) => <tr key={index} className="border-t border-white/[.05]"><td className="px-5 py-4 text-slate-300">{dateLabel(row.as_of_date)}</td><td className="text-slate-400">{pct(row.roe)}</td><td className="text-slate-400">{pct(row.roce)}</td><td className="text-slate-400">{pct(row.net_margin)}</td><td className="text-slate-400">{num(row.debt_to_equity)}</td><td className="text-slate-400">{num(row.current_ratio)}</td><td className="text-slate-400">{pct(row.revenue_growth_1y)}</td><td className="text-slate-400">{pct(row.profit_growth_1y)}</td><td className="text-slate-400">{pct(row.eps_growth_1y)}</td></tr>)}</tbody></table></div></Card>}</section>
+      <section id="growth" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Growth & profitability" title="Ratios, margins, growth and financial health" description="All currently available ratio fields and historical ratio snapshots." />
+        <Card className="p-5"><ObjectGrid data={detail.ratios} /></Card>
+        <Card className="mt-4 overflow-hidden"><DataTable rows={detail.ratio_history} title="Ratio history" /></Card>
+      </section>
 
-    <section id="shareholding" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Ownership" title="Shareholding pattern" description="Latest available ownership data is grouped by reporting period and holder category."/><Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">Category</th><th>Holding</th><th>Shares</th><th>Period</th></tr></thead><tbody>{detail.shareholding.length ? detail.shareholding.map((row, index) => <tr key={`${row.category}-${index}`} className="border-t border-white/[.05]"><td className="px-5 py-4 font-medium text-slate-300">{row.category_name ?? row.category}</td><td className="text-slate-400">{pct(row.percentage_held)}</td><td className="text-slate-500">{num(row.shares_held, 0)}</td><td className="text-slate-500">{dateLabel(row.period_end_date)}</td></tr>) : <tr><td colSpan={4} className="px-5 py-8"><EmptyState text="Shareholding data is not available for the latest canonical reporting period." /></td></tr>}</tbody></table></div></Card></section>
+      <section id="shareholding" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Ownership" title="Shareholding pattern" description="Latest available ownership records." />
+        <Card className="overflow-hidden"><DataTable rows={detail.shareholding} title="Shareholding" /></Card>
+      </section>
 
-    <section id="technicals" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Technicals" title="Technical indicators" description="Latest technical indicators connected to the canonical listing."/><Card className="p-5">{detail.technicals.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{detail.technicals.map((item, index) => <Stat key={`${item.code}-${index}`} label={item.name ?? item.code} value={num(item.value)} hint={dateLabel(item.price_date)} />)}</div> : <EmptyState />}</Card></section>
+      <section id="technicals" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Technicals" title="Technical indicators" description="Latest technical indicators connected to the canonical listing." />
+        <Card className="p-5"><ObjectGrid data={detail.technicals.reduce((acc: AnyRow, item: AnyRow) => { acc[item.code ?? item.name ?? "indicator"] = item.value; return acc; }, {})} /></Card>
+      </section>
 
-    <section id="dividends" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Income" title="Dividend history" description={`${detail.dividends.length} dividend event${detail.dividends.length === 1 ? "" : "s"} currently available.`}/><Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">Type</th><th>Amount / share</th><th>Announcement</th><th>Ex-date</th><th>Payment date</th></tr></thead><tbody>{detail.dividends.length ? detail.dividends.map((row, index) => <tr key={index} className="border-t border-white/[.05]"><td className="px-5 py-4 text-slate-300">{String(row.type ?? "Dividend")}</td><td className="text-slate-400">{money(row.amount_per_share)}</td><td className="text-slate-500">{dateLabel(row.announcement_date)}</td><td className="text-slate-500">{dateLabel(row.ex_date)}</td><td className="text-slate-500">{dateLabel(row.payment_date)}</td></tr>) : <tr><td colSpan={5} className="px-5 py-8"><EmptyState text="No dividend events are available in the canonical feed." /></td></tr>}</tbody></table></div></Card></section>
+      <section id="dividends" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Income" title="Dividend history" description="Dividend announcements, ex-dates, record dates, payment dates and amounts." />
+        <Card className="overflow-hidden"><DataTable rows={detail.dividends} title="Dividends" /></Card>
+      </section>
 
-    <section id="corporate-actions" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Corporate actions" title="Corporate action history" description={`${detail.corporate_actions.length} issuer event${detail.corporate_actions.length === 1 ? "" : "s"} currently available.`}/><Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/[.025] text-xs uppercase tracking-wider text-slate-600"><tr><th className="px-5 py-4">Action</th><th>Announcement</th><th>Effective</th><th>Ratio / cash</th><th>Description</th></tr></thead><tbody>{detail.corporate_actions.length ? detail.corporate_actions.map((row, index) => <tr key={index} className="border-t border-white/[.05]"><td className="px-5 py-4 text-slate-300">{String(row.type ?? "Corporate action")}</td><td className="text-slate-500">{dateLabel(row.announcement_date)}</td><td className="text-slate-500">{dateLabel(row.effective_date ?? row.ex_date)}</td><td className="text-slate-500">{row.ratio_numerator != null ? `${num(row.ratio_numerator)}:${num(row.ratio_denominator)}` : row.cash_amount != null ? money(row.cash_amount) : "—"}</td><td className="max-w-xs text-slate-500">{String(row.description ?? "—")}</td></tr>) : <tr><td colSpan={5} className="px-5 py-8"><EmptyState text="No corporate actions are available in the canonical feed." /></td></tr>}</tbody></table></div></Card></section>
+      <section id="corporate-actions" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Corporate actions" title="Corporate action history" description="Splits, bonuses, dividends, buybacks and other issuer events available in the feed." />
+        <Card className="overflow-hidden"><DataTable rows={detail.corporate_actions} title="Corporate actions" /></Card>
+      </section>
 
-    <section id="instrument" className="mt-10 scroll-mt-24"><PageTitle eyebrow="Instrument data" title="Identifiers, listing & equity details" description="All available identity and exchange attributes are surfaced here."/><div className="grid gap-5 lg:grid-cols-3"><Card className="p-5"><h2 className="font-semibold">Identifiers</h2><div className="mt-4 space-y-2">{detail.identifiers.length ? detail.identifiers.map((item, index) => <div key={index} className="flex items-center justify-between gap-4 rounded-lg border border-white/[.06] px-3 py-3 text-sm"><span className="text-slate-500">{item.type}</span><span className="font-medium text-slate-300">{item.value}</span></div>) : <EmptyState text="No additional current identifiers are available." />}</div></Card><Card className="p-5"><h2 className="font-semibold">Listing details</h2><div className="mt-4 grid grid-cols-2 gap-3"><Stat label="Exchange" value={detail.instrument.nse_symbol ? "NSE" : "BSE"} /><Stat label="Series" value={detail.instrument.series ?? missing} /><Stat label="Listing date" value={dateLabel(detail.instrument.listing_date)} /><Stat label="Lot size" value={num(detail.instrument.lot_size, 0)} /><Stat label="Tick size" value={num(detail.instrument.tick_size)} /><Stat label="Face value" value={money(detail.instrument.face_value ?? detail.equity_profile?.face_value)} /><Stat label="Currency" value={detail.instrument.currency ?? missing} /></div></Card><Card className="p-5"><h2 className="font-semibold">Equity profile</h2><div className="mt-4 grid grid-cols-2 gap-3"><Stat label="Security type" value={detail.equity_profile?.security_type ?? missing} /><Stat label="Paid-up value" value={money(detail.equity_profile?.paid_up_value)} /><Stat label="Shares outstanding" value={num(detail.equity_profile?.shares_outstanding, 0)} /><Stat label="Free-float shares" value={num(detail.equity_profile?.free_float_shares, 0)} /></div></Card></div></section>
+      <section id="instrument" className="mt-10 scroll-mt-24">
+        <PageTitle eyebrow="Instrument" title="Identifiers, listing & equity details" description="Complete instrument metadata returned by the canonical record." />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card className="p-5"><h2 className="font-semibold text-slate-100">Instrument</h2><div className="mt-4"><ObjectGrid data={detail.instrument} /></div></Card>
+          <Card className="p-5"><h2 className="font-semibold text-slate-100">Equity Profile</h2><div className="mt-4"><ObjectGrid data={detail.equity_profile} /></div></Card>
+        </div>
+        <Card className="mt-5 p-5"><h2 className="font-semibold text-slate-100">Identifiers</h2><div className="mt-4"><DataTable rows={detail.identifiers} title="Identifiers" /></div></Card>
+      </section>
 
-    <Card className="mt-10 p-5 sm:p-6"><h2 className="font-semibold">Data provenance & research disclaimer</h2><p className="mt-3 max-w-4xl text-sm leading-6 text-slate-400">This page reads the canonical GNSOne instrument record and connected market analytics. Missing values are shown explicitly rather than fabricated. Financial values are displayed in ₹ crore where applicable. Market data may be delayed. GNSOne provides research and informational content and does not provide personalized investment advice.</p><p className="mt-3 text-xs text-slate-600">Latest price source update: {dateLabel(price?.source_updated_at)} · Score date: {dateLabel(detail.score?.as_of_date)}</p></Card>
-  </SiteShell>;
+      <Card className="mt-10 p-5 sm:p-6">
+        <h2 className="font-semibold text-slate-100">Data provenance & disclaimer</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-400">This page displays data returned by the canonical GNSOne research feed. Missing values are shown as unavailable rather than fabricated. Market data may be delayed. GNSOne provides research and informational content and does not provide personalized investment advice.</p>
+      </Card>
+    </SiteShell>
+  );
 }
