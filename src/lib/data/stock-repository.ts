@@ -22,6 +22,12 @@ export type StockResearchDetail = {
   score: Record<string, any> | null;
   identifiers: Array<{ type: string; value: string; current: boolean }>;
   equity_profile: Record<string, any> | null;
+  financials: Record<string, any> | null;
+  financial_history: Array<Record<string, any>>;
+  ratios: Record<string, any> | null;
+  ratio_history: Array<Record<string, any>>;
+  valuation: Record<string, any> | null;
+  valuation_history: Array<Record<string, any>>;
   shareholding: Array<Record<string, any>>;
   dividends: Array<Record<string, any>>;
   corporate_actions: Array<Record<string, any>>;
@@ -59,6 +65,11 @@ function num(value: unknown): number | null {
   return value == null ? null : Number(value);
 }
 
+function normalizeObject(value: Record<string, any> | null | undefined, dateKeys: string[] = []): Record<string, any> | null {
+  if (!value) return null;
+  return Object.fromEntries(Object.entries(value).map(([key, raw]) => [key, dateKeys.includes(key) ? raw : num(raw)]));
+}
+
 export async function getStockSnapshots(limit = 6): Promise<StockDetail[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("gns_get_stock_snapshots", { p_limit: limit });
@@ -88,10 +99,16 @@ export async function getStockResearchDetail(symbol: string): Promise<StockResea
   const raw = data as any;
   return {
     ...raw,
-    price: raw.price ? Object.fromEntries(Object.entries(raw.price).map(([key, value]) => [key, key === "source_updated_at" || key === "date" ? value : num(value)])) : null,
+    price: normalizeObject(raw.price, ["source_updated_at", "date"]),
     range_52w: raw.range_52w ? { high: num(raw.range_52w.high), low: num(raw.range_52w.low) } : null,
-    score: raw.score ? Object.fromEntries(Object.entries(raw.score).map(([key, value]) => [key, key === "as_of_date" ? value : num(value)])) : null,
-    equity_profile: raw.equity_profile ? Object.fromEntries(Object.entries(raw.equity_profile).map(([key, value]) => [key, key === "security_type" ? value : num(value)])) : null,
+    score: normalizeObject(raw.score, ["as_of_date"]),
+    equity_profile: normalizeObject(raw.equity_profile, ["security_type"]),
+    financials: normalizeObject(raw.financials, []),
+    financial_history: (raw.financial_history ?? []).map((row: any) => normalizeObject(row, ["period_start", "period_end", "filing_date", "period_type"]) ?? {}),
+    ratios: normalizeObject(raw.ratios, ["as_of_date"]),
+    ratio_history: (raw.ratio_history ?? []).map((row: any) => normalizeObject(row, ["as_of_date"]) ?? {}),
+    valuation: normalizeObject(raw.valuation, ["as_of_date"]),
+    valuation_history: (raw.valuation_history ?? []).map((row: any) => normalizeObject(row, ["as_of_date"]) ?? {}),
     technicals: (raw.technicals ?? []).map((item: any) => ({ ...item, value: num(item.value) })),
     price_history: (raw.price_history ?? []).map((item: any) => ({ date: item.date, close: num(item.close) })),
   } as StockResearchDetail;
