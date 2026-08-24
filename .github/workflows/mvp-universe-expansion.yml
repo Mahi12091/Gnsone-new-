@@ -1,0 +1,64 @@
+name: GNSOne MVP Universe Expansion
+
+on:
+  workflow_dispatch:
+    inputs:
+      stock_count:
+        description: 'Number of additional NSE equities to seed'
+        required: false
+        default: '500'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gnsone-mvp-universe-expansion
+  cancel-in-progress: true
+
+jobs:
+  expand-and-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Seed additional NSE equities
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NSE_SEED_COUNT: ${{ inputs.stock_count }}
+        run: node scripts/ingestion/seed-nse-universe.mjs
+
+      - name: Populate market prices and financials
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INGEST_HISTORY_DAYS: '1825'
+        run: node scripts/ingestion/complete-data-ingest.mjs
+
+      - name: Run market structure ingestion
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ingestion/market-structure-ingest.mjs
+
+      - name: FMP secondary enrichment when configured
+        if: ${{ env.FMP_API_KEY != '' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ingestion/fmp-ingest.mjs
+
+      - name: Finalize backend
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ingestion/finalize-backend.mjs
