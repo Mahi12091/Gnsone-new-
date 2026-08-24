@@ -17,7 +17,7 @@ Verified implementation:
 - Migration-driven database changes
 - Provider-agnostic data architecture
 
-Verification note: the available GitHub connector currently exposes repository checks but not a complete push-triggered Actions run history for every latest commit. Vercel reports a successful check for the current `main` commit. Do not mark the full Phase 0 quality gate closed until repository typecheck, lint, tests, and production build are directly verified.
+Verification note: the available GitHub connector currently exposes repository checks but not a complete push-triggered Actions run history for every latest commit. Vercel reports a successful production deployment for the current `main` commit. Do not mark the full Phase 0 quality gate closed until repository typecheck, lint, tests, and production build are directly verified.
 
 ## Phase 1 — Database Foundation
 
@@ -52,9 +52,11 @@ Verified:
 - Identifier history structures
 - Stock search across listings
 - Current production ingestion path
+- 500-stock expansion workflow merged to `main`
 
 Remaining:
 
+- Execute and verify the manual 500-stock universe expansion
 - Expand and verify the full NSE/BSE universe against the blueprint target
 - Complete source-backed universe validation
 
@@ -123,7 +125,7 @@ Verified recent production work:
 - Financial/ratio/valuation data exposure
 - Stock search functionality
 - Search across listings
-- Current `main` Vercel check successful
+- Current `main` production deployment successful
 
 Remaining:
 
@@ -190,18 +192,38 @@ Status: **Deployment/build healthy; final production gate pending**
 
 Current `main`:
 
-- Commit: `70fb5c47f9a4be7c4b15f0509508e9d6acfb041b`
-- Vercel check: **SUCCESS**
+- Commit: `9f515a68036574085f2f1316e8e4a8f45c6e5384`
+- Commit: `feat: add manual MVP 500-stock expansion workflow`
+- Vercel production deployment: **READY**
+- Vercel build: **SUCCESS**
+- Production runtime errors in the last 24 hours: **0**
 
 Final production completion requires all blueprint phase gates, source-backed data completeness, security, performance, CI/QA, and deployment verification to pass together.
 
+## Connected production data snapshot
+
+Verified directly from the connected Supabase production database:
+
+- `market.companies`: 50
+- `market.instruments`: 50
+- `market.listings`: 50
+- `market.instrument_identifiers`: 50
+- `market.historical_prices`: 61,605
+- `market.corporate_actions`: 15
+- `market.dividends`: 369
+- `market.shareholding_values`: 0
+- `financials.financial_statement_values`: 2,659
+
+This confirms the 500-stock expansion has not yet been executed in production and that shareholding persistence remains an active backend blocker.
+
 ## Active Completion Blockers
 
-1. Secure the three public SECURITY DEFINER research RPCs without breaking public stock research.
-2. Verify backend completeness on current `main`, including shareholding values and corporate actions.
-3. Reconcile the stale frontend completion branch with current `main` before merging it.
-4. Resolve the three duplicate-index WARN findings.
-5. Complete final CI/typecheck/lint/test/build verification.
-6. Implement and verify remaining blueprint phases: user features, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
+1. Execute and verify the manual 500-stock universe expansion workflow.
+2. Secure the three public SECURITY DEFINER research RPCs without breaking public stock research.
+3. Verify backend completeness on current `main`, including shareholding values and corporate actions.
+4. Reconcile the stale frontend completion branch with current `main` before merging it.
+5. Resolve the three duplicate-index WARN findings.
+6. Complete final CI/typecheck/lint/test/build verification.
+7. Implement and verify remaining blueprint phases: user features, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
 
 **GNSOne is not production-complete until every item above is verified.**
