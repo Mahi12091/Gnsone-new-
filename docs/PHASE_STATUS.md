@@ -190,23 +190,22 @@ Status: **Deployment/build healthy; final production gate pending**
 
 Current `main`:
 
-- Commit: `37a59e1252df111e180c9b1fbd3bfcacae9b0671`
-- Commit: `docs: reconcile live phase gates and advisor state`
-- Vercel production deployment: **READY**
-- Vercel build: **SUCCESS**
-- Production runtime errors in the last 24 hours: **0**
+- Commit: `4b364bb5eb3330eb1ca1491dafb12752aaaf3d41`
+- Commit: `docs: reconcile phase status with latest production commit (#11)`
+- Vercel production check for current `main`: **SUCCESS**
+- Fresh deployment/runtime verification beyond the GitHub Vercel status is not independently exposed by the connected Vercel API in this run.
 
 Final production completion requires all blueprint phase gates, source-backed data completeness, security, performance, CI/QA, and deployment verification to pass together.
 
 ## Connected production data snapshot
 
-Verified directly from the connected Supabase production database:
+Verified directly from the connected Supabase production database during the latest completion check:
 
 - `market.companies`: 50
 - `market.instruments`: 50
 - `market.listings`: 50
 - `market.instrument_identifiers`: 50
-- `market.historical_prices`: 61,605
+- `market.historical_prices`: 61,655
 - `market.corporate_actions`: 15
 - `market.dividends`: 369
 - `market.shareholding_values`: 0
@@ -217,10 +216,6 @@ This confirms the 500-stock expansion has not yet been executed in production an
 ## Active Completion Blockers
 
 1. Execute and verify the manual 500-stock universe expansion workflow.
-2. Secure the three public SECURITY DEFINER research RPCs without breaking public stock research.
-3. Verify backend completeness on current `main`, including shareholding values and corporate actions.
-4. Reconcile the stale frontend completion branch with current `main` before merging it.
-5. Complete final CI/typecheck/lint/test/build verification.
-6. Implement and verify remaining blueprint phases: user features, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
-
-**GNSOne is not production-complete until every item above is verified.**
+2. Resolve the NSE shareholding ingestion/persistence blocker with source-backed records; do not fabricate financial data.
+3. Secure the three public SECURITY DEFINER research RPCs without breaking public stock research.
+4. Complete the remaining blueprint phases: user features, target-price engine, AI research, admin/monitoring, final SEO/accessibility audit, and final CI/QA/production verification.
