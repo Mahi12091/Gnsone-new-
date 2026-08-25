@@ -6,7 +6,7 @@ This file is the repository-level phase-gate snapshot. It must reflect verified 
 
 Status: **Implementation complete; final CI gate not independently verified**
 
-Verified implementation:
+Verified:
 
 - Next.js/TypeScript foundation
 - Tailwind/PostCSS
@@ -17,11 +17,11 @@ Verified implementation:
 - Migration-driven database changes
 - Provider-agnostic data architecture
 
-Verification note: the available GitHub connector currently exposes repository checks but not a complete push-triggered Actions run history for every latest commit. Vercel reports a successful production deployment for the current `main` commit. Do not mark the full Phase 0 quality gate closed until repository typecheck, lint, tests, and production build are directly verified.
+Verification note: the available GitHub connector exposes repository checks but not a complete push-triggered Actions history for every latest commit. Vercel reports a successful production deployment for the current `main` commit. Do not mark the full Phase 0 quality gate closed until repository typecheck, lint, tests, and production build are directly verified.
 
 ## Phase 1 — Database Foundation
 
-Status: **Implemented and connected; security/performance hardening remains**
+Status: **Implemented and connected; security hardening remains**
 
 Verified:
 
@@ -34,12 +34,13 @@ Verified:
 - RLS on exposed legacy public tables with explicit read policies
 - `pg_trgm` moved out of the exposed `public` schema
 - Internal ingestion RPC execution hardened
+- Duplicate-index WARN findings resolved; current Performance Advisor has no WARN-level findings
 
 Remaining:
 
 - Secure the three public SECURITY DEFINER research RPCs
-- Resolve the remaining duplicate-index WARN findings
 - Continue final RLS/security verification
+- Deliberately optimize remaining INFO-level FK/index findings where justified
 
 ## Phase 2 — Instrument Master
 
@@ -74,7 +75,7 @@ Verified:
 Remaining:
 
 - Full-universe verification
-- Corporate actions
+- Corporate-action completeness verification
 - Price adjustment factors
 - Source lineage/freshness verification
 
@@ -109,7 +110,7 @@ Verified:
 Remaining:
 
 - Full-universe verification
-- Final performance/index review
+- Final deliberate INFO-level performance/index review
 
 ## Phase 6 — GNS Score
 
@@ -166,13 +167,10 @@ Status: **Pending final production implementation**
 
 Status: **Partially implemented; final audit pending**
 
-Open database performance WARN findings:
+Current Performance Advisor state:
 
-- Duplicate indexes on `financials.financial_statements`
-- Duplicate indexes on `financials.valuation_metric_snapshots`
-- Duplicate indexes on `market.historical_prices`
-
-Additional unindexed-FK/unused-index notices are currently INFO-level and should be optimized deliberately.
+- **WARN-level findings: 0**
+- Remaining findings are INFO-level unindexed-FK and unused-index recommendations
 
 ## Phase 15 — Security and Testing
 
@@ -192,8 +190,8 @@ Status: **Deployment/build healthy; final production gate pending**
 
 Current `main`:
 
-- Commit: `9f515a68036574085f2f1316e8e4a8f45c6e5384`
-- Commit: `feat: add manual MVP 500-stock expansion workflow`
+- Commit: `538db488257e62b3a8921c023b90bfd623b73f98`
+- Commit: `docs: reconcile phase status with latest production state (#9)`
 - Vercel production deployment: **READY**
 - Vercel build: **SUCCESS**
 - Production runtime errors in the last 24 hours: **0**
@@ -222,8 +220,7 @@ This confirms the 500-stock expansion has not yet been executed in production an
 2. Secure the three public SECURITY DEFINER research RPCs without breaking public stock research.
 3. Verify backend completeness on current `main`, including shareholding values and corporate actions.
 4. Reconcile the stale frontend completion branch with current `main` before merging it.
-5. Resolve the three duplicate-index WARN findings.
-6. Complete final CI/typecheck/lint/test/build verification.
-7. Implement and verify remaining blueprint phases: user features, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
+5. Complete final CI/typecheck/lint/test/build verification.
+6. Implement and verify remaining blueprint phases: user features, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
 
 **GNSOne is not production-complete until every item above is verified.**
