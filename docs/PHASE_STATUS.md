@@ -190,8 +190,8 @@ Status: **Deployment/build healthy; final production gate pending**
 
 Current `main`:
 
-- Commit: `538db488257e62b3a8921c023b90bfd623b73f98`
-- Commit: `docs: reconcile phase status with latest production state (#9)`
+- Commit: `37a59e1252df111e180c9b1fbd3bfcacae9b0671`
+- Commit: `docs: reconcile live phase gates and advisor state`
 - Vercel production deployment: **READY**
 - Vercel build: **SUCCESS**
 - Production runtime errors in the last 24 hours: **0**
