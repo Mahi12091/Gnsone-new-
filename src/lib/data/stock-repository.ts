@@ -15,7 +15,9 @@ export type StockDetail = StockListItem & {
   score: number | null;
 };
 
-type JsonObject = Record<string, unknown>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonObject = Record<string, JsonPrimitive>;
+type RawObject = Record<string, unknown>;
 
 export type StockResearchDetail = {
   instrument: JsonObject;
@@ -67,9 +69,19 @@ function num(value: unknown): number | null {
   return value == null ? null : Number(value);
 }
 
-function normalizeObject(value: JsonObject | null | undefined, dateKeys: string[] = []): JsonObject | null {
+function normalizeObject(value: RawObject | null | undefined, dateKeys: string[] = []): JsonObject | null {
   if (!value) return null;
-  return Object.fromEntries(Object.entries(value).map(([key, raw]) => [key, dateKeys.includes(key) ? raw : num(raw)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, raw]) => [key, dateKeys.includes(key) ? String(raw ?? "") : num(raw)])
+  ) as JsonObject;
+}
+
+function asObject(value: unknown): RawObject {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as RawObject : {};
+}
+
+function asObjectArray(value: unknown): RawObject[] {
+  return Array.isArray(value) ? value.map(asObject) : [];
 }
 
 export async function getStockSnapshots(limit = 6): Promise<StockDetail[]> {
@@ -98,26 +110,39 @@ export async function getStockResearchDetail(symbol: string): Promise<StockResea
   if (error) throw new Error(`Unable to load stock research detail: ${error.message}`);
   if (!data) return null;
 
-  const raw = data as JsonObject;
+  const raw = asObject(data);
+  const instrument = normalizeObject(asObject(raw.instrument), ["security_type"]) ?? {};
+  const identifiers = Array.isArray(raw.identifiers)
+    ? raw.identifiers.map((item) => {
+        const record = asObject(item);
+        return {
+          type: String(record.type ?? ""),
+          value: String(record.value ?? ""),
+          current: Boolean(record.current),
+        };
+      })
+    : [];
+  const range = asObject(raw.range_52w);
+
   return {
-    ...raw,
-    price: normalizeObject(raw.price as JsonObject | null | undefined, ["source_updated_at", "date"]),
-    range_52w: raw.range_52w && typeof raw.range_52w === "object" ? { high: num((raw.range_52w as JsonObject).high), low: num((raw.range_52w as JsonObject).low) } : null,
-    score: normalizeObject(raw.score as JsonObject | null | undefined, ["as_of_date"]),
-    equity_profile: normalizeObject(raw.equity_profile as JsonObject | null | undefined, ["security_type"]),
-    financials: normalizeObject(raw.financials as JsonObject | null | undefined, []),
-    financial_history: (Array.isArray(raw.financial_history) ? raw.financial_history : []).map((row) => normalizeObject(row as JsonObject, ["period_start", "period_end", "filing_date", "period_type"]) ?? {}),
-    ratios: normalizeObject(raw.ratios as JsonObject | null | undefined, ["as_of_date"]),
-    ratio_history: (Array.isArray(raw.ratio_history) ? raw.ratio_history : []).map((row) => normalizeObject(row as JsonObject, ["as_of_date"]) ?? {}),
-    valuation: normalizeObject(raw.valuation as JsonObject | null | undefined, ["as_of_date"]),
-    valuation_history: (Array.isArray(raw.valuation_history) ? raw.valuation_history : []).map((row) => normalizeObject(row as JsonObject, ["as_of_date"]) ?? {}),
-    technicals: (Array.isArray(raw.technicals) ? raw.technicals : []).map((item) => {
-      const record = item as JsonObject;
-      return { ...record, value: num(record.value) };
-    }),
-    price_history: (Array.isArray(raw.price_history) ? raw.price_history : []).map((item) => {
-      const record = item as JsonObject;
-      return { date: String(record.date ?? ""), close: num(record.close) };
-    }),
+    instrument,
+    price: normalizeObject(asObject(raw.price), ["source_updated_at", "date"]),
+    range_52w: raw.range_52w && typeof raw.range_52w === "object" && !Array.isArray(raw.range_52w)
+      ? { high: num(range.high), low: num(range.low) }
+      : null,
+    score: normalizeObject(asObject(raw.score), ["as_of_date"]),
+    identifiers,
+    equity_profile: normalizeObject(asObject(raw.equity_profile), ["security_type"]),
+    financials: normalizeObject(asObject(raw.financials)),
+    financial_history: asObjectArray(raw.financial_history).map((row) => normalizeObject(row, ["period_start", "period_end", "filing_date", "period_type"]) ?? {}),
+    ratios: normalizeObject(asObject(raw.ratios), ["as_of_date"]),
+    ratio_history: asObjectArray(raw.ratio_history).map((row) => normalizeObject(row, ["as_of_date"]) ?? {}),
+    valuation: normalizeObject(asObject(raw.valuation), ["as_of_date"]),
+    valuation_history: asObjectArray(raw.valuation_history).map((row) => normalizeObject(row, ["as_of_date"]) ?? {}),
+    shareholding: asObjectArray(raw.shareholding).map((row) => normalizeObject(row) ?? {}),
+    dividends: asObjectArray(raw.dividends).map((row) => normalizeObject(row) ?? {}),
+    corporate_actions: asObjectArray(raw.corporate_actions).map((row) => normalizeObject(row) ?? {}),
+    technicals: asObjectArray(raw.technicals).map((item) => ({ ...normalizeObject(item) ?? {}, value: num(item.value) })),
+    price_history: asObjectArray(raw.price_history).map((item) => ({ date: String(item.date ?? ""), close: num(item.close) })),
   };
 }
