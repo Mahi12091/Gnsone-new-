@@ -15,12 +15,20 @@ export type StockDetail = StockListItem & {
   score: number | null;
 };
 
-type JsonPrimitive = string | number | boolean | null;
+type JsonPrimitive = string | number | null;
 type JsonObject = Record<string, JsonPrimitive>;
 type RawObject = Record<string, unknown>;
+type Instrument = JsonObject & {
+  nse_symbol?: string | null;
+  bse_code?: string | null;
+  instrument_type?: string | null;
+  sector?: string | null;
+  industry?: string | null;
+  currency?: string | null;
+};
 
 export type StockResearchDetail = {
-  instrument: JsonObject;
+  instrument: Instrument;
   price: JsonObject | null;
   range_52w: { high: number | null; low: number | null } | null;
   score: JsonObject | null;
@@ -111,7 +119,7 @@ export async function getStockResearchDetail(symbol: string): Promise<StockResea
   if (!data) return null;
 
   const raw = asObject(data);
-  const instrument = normalizeObject(asObject(raw.instrument), ["security_type"]) ?? {};
+  const instrument = (normalizeObject(asObject(raw.instrument), ["security_type"]) ?? {}) as Instrument;
   const identifiers = Array.isArray(raw.identifiers)
     ? raw.identifiers.map((item) => {
         const record = asObject(item);
