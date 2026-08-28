@@ -56,10 +56,10 @@ function parseMaster(payload: string, source: ExchangeSource): ExchangeMasterRow
 
   return records.slice(1).map((row) => ({
     source,
-    name: value(row, headers, "NAME", "SCRIPNAME", "SECURITYNAME") ?? "",
+    name: value(row, headers, "NAME", "NAMEOFCOMPANY", "SCRIPNAME", "SECURITYNAME") ?? "",
     isin: value(row, headers, "ISIN", "ISINNUMBER"),
     nseSymbol: source === "NSE" ? value(row, headers, "SYMBOL", "NSESYMBOL") : undefined,
-    bseCode: source === "BSE" ? value(row, headers, "SCRIPCODE", "SCRIPCODE" ) : undefined,
+    bseCode: source === "BSE" ? value(row, headers, "SCRIPCODE") : undefined,
     series: value(row, headers, "SERIES"),
     securityType: value(row, headers, "SECURITYTYPE", "INSTRUMENTTYPE"),
   }));

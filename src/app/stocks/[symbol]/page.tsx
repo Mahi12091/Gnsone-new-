@@ -5,7 +5,7 @@ import { getStockBySymbol, getStockResearchDetail } from "@/lib/data/stock-repos
 
 const missing = "Not available";
 
-type AnyRow = Record<string, any>;
+type AnyRow = Record<string, unknown>;
 
 function n(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -147,8 +147,8 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
             <PageTitle eyebrow="Complete stock research" title={stock.name} description={`${detail.instrument.nse_symbol ? `NSE: ${detail.instrument.nse_symbol}` : `BSE: ${detail.instrument.bse_code ?? "—"}`} · Complete market, financial, valuation, growth and ownership research.`} />
             <div className="flex flex-wrap gap-2 text-xs text-slate-500">
               <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.instrument_type ?? "Equity"}</span>
-              {detail.instrument.sector && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.sector}</span>}
-              {detail.instrument.industry && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.industry}</span>}
+              {detail.instrument.sector && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{String(detail.instrument.sector)}</span>}
+              {detail.instrument.industry && <span className="rounded-full border border-white/[.07] px-3 py-1.5">{String(detail.instrument.industry)}</span>}
               <span className="rounded-full border border-white/[.07] px-3 py-1.5">{detail.instrument.currency ?? "INR"}</span>
             </div>
           </div>
@@ -216,7 +216,7 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
 
       <section id="technicals" className="mt-10 scroll-mt-24">
         <PageTitle eyebrow="Technicals" title="Technical indicators" description="Latest technical indicators connected to the canonical listing." />
-        <Card className="p-5"><ObjectGrid data={detail.technicals.reduce((acc: AnyRow, item: AnyRow) => { acc[item.code ?? item.name ?? "indicator"] = item.value; return acc; }, {})} /></Card>
+        <Card className="p-5"><ObjectGrid data={detail.technicals.reduce((acc: AnyRow, item: AnyRow) => { acc[String(item.code ?? item.name ?? "indicator")] = item.value; return acc; }, {})} /></Card>
       </section>
 
       <section id="dividends" className="mt-10 scroll-mt-24">
