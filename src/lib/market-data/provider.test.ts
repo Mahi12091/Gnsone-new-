@@ -21,8 +21,8 @@ describe("market data provider contract", () => {
 
   it("accepts a canonical quote", () => {
     const quote = validateQuote({
-      instrumentId: "00000000-0000-0000-0000-000000000001",
-      listingId: "00000000-0000-0000-0000-000000000002",
+      instrumentId: "123e4567-e89b-12d3-a456-426614174000",
+      listingId: "123e4567-e89b-12d3-a456-426614174001",
       asOf: new Date().toISOString(),
       price: 100,
       open: 99,
