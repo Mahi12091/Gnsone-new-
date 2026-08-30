@@ -18,19 +18,19 @@ Canonical identity/classification, financial foundations, constraints/indexes, t
 
 Status: **500-stock MVP universe verified in production; full blueprint universe pending**
 
-Verified production `public.instruments`: **501 rows** and `public.instrument_identifiers`: **502 rows**. Full NSE/BSE universe validation and source-backed completeness remain pending.
+Verified production `market.instruments`: **50 rows in the connected market schema**. Full NSE/BSE universe validation and source-backed completeness remain pending.
 
 ## Phase 3 — Market Data Engine
 
 Status: **Implemented; production completeness pending**
 
-Verified production `public.price_snapshots`: **61,705 rows**. Corporate-action and adjustment-factor structures are now deployed through migration `20260829181000_add_corporate_actions_and_adjustment_factors.sql`, but both are currently empty and therefore the data gate remains open. Full-universe freshness, lineage, corporate-action ingestion, and adjustment-factor coverage remain pending.
+Verified production `market.historical_prices`: **61,755 rows**. Corporate actions and price-adjustment factors are now populated with **15 corporate actions** and **15 adjustment factors**. Shareholding periods contain **1,034 rows**, but `market.shareholding_values` remains **0 rows**. Full-universe freshness, lineage, and source-backed coverage remain pending.
 
 ## Phase 4 — Fundamentals and Financials
 
-Status: **Implemented with populated production data; full-universe verification pending**
+Status: **Implemented; fresh live-table verification pending for the historical snapshot counts**
 
-Current production counts include **199 financial periods/statements**, **300 financial ratios**, and **300 valuation snapshots**. Full source-backed completeness and freshness remain pending.
+The repository contains the financial foundation and ingestion path, but the current connected `market` schema does not expose the older `public.financial_periods`, `public.financial_statements`, `public.financial_ratios`, and `public.valuation_snapshots` names used by the historical snapshot. Those counts must not be treated as freshly verified until reconciled against the live schema.
 
 ## Phase 5 — Derived Analytics
 
@@ -58,9 +58,9 @@ Profiles, watchlists, portfolios, and alerts remain required blueprint work.
 
 ## Phase 10 — News and Corporate Actions
 
-Status: **Not production-complete**
+Status: **Corporate-action storage and initial source-backed rows verified; full ingestion/completeness and news remain pending**
 
-Corporate-action storage is now present, but source-backed ingestion/completeness is still required; news remains required blueprint work.
+The connected production schema contains **15 corporate actions** and **15 price-adjustment factors**. Full source-backed coverage and news remain required blueprint work.
 
 ## Phase 11 — Target-Price Engine
 
@@ -90,29 +90,31 @@ Research RPC hardening is deployed. Security Advisor is INFO-only, but direct li
 
 Status: **Deployment healthy; final production gate pending**
 
-Latest `main` commit: `7b0464876fda9d35350882896f8369c85c1c2bd5` (`feat(market): add corporate action and price adjustment factor lineage`). Vercel production deployment is **READY** and GitHub reports **Vercel SUCCESS** for this commit.
+Latest `main` commit: `57c39fbef508281472fd72a8431a8bebea76fc5c` (`chore: refresh market ingestion completion gate`). Vercel production deployment for this commit is **READY**, Vercel reports a successful build, and GitHub reports **Vercel SUCCESS** for this commit.
 
 ## Connected production data snapshot
 
-Verified directly from connected Supabase production:
+Verified directly from connected Supabase production (`market` schema):
 
-- `public.instruments`: **501**
-- `public.instrument_identifiers`: **502**
-- `public.price_snapshots`: **61,705**
-- `public.financial_periods`: **199**
-- `public.financial_statements`: **199**
-- `public.financial_ratios`: **300**
-- `public.valuation_snapshots`: **300**
-- `public.shareholding_snapshots`: **0**
-- `public.corporate_actions`: **0**
-- `public.price_adjustment_factors`: **0**
+- `market.companies`: **50**
+- `market.instruments`: **50**
+- `market.instrument_identifiers`: **50**
+- `market.historical_prices`: **61,755**
+- `market.corporate_actions`: **15**
+- `market.price_adjustment_factors`: **15**
+- `market.dividends`: **369**
+- `market.shareholding_periods`: **1,034**
+- `market.shareholding_categories`: **6**
+- `market.shareholding_values`: **0**
+- `market.company_peers`: **94**
 
 ## Active Completion Blockers
 
-1. Implement and verify source-backed shareholding ingestion; current `public.shareholding_snapshots` is **0**.
-2. Populate and verify source-backed corporate actions and price-adjustment factors; the production schema is now ready but contains **0** rows in each table.
+1. Implement/execute and verify source-backed shareholding-value ingestion; current `market.shareholding_values` is **0**.
+2. Expand and verify source-backed corporate-action and price-adjustment coverage beyond the current **15/15** rows.
 3. Run and directly verify lint, type-check, tests, and production build for the current `main` commit.
-4. Complete full-universe/source-lineage/freshness verification beyond the 500-stock MVP gate.
-5. Complete remaining blueprint phases: user features, news, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
+4. Complete full-universe/source-lineage/freshness verification beyond the current 50-stock live market schema snapshot.
+5. Reconcile the financial/fundamental live schema with the historical `public.*` phase snapshot before claiming those counts as production-verified.
+6. Complete remaining blueprint phases: user features, news, target price, AI research, admin/monitoring, and final SEO/performance/security gates.
 
 **GNSOne is not production-complete until every required phase gate and completion blocker is verified.**
