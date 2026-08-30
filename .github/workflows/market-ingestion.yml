@@ -66,3 +66,4 @@ jobs:
         run: node scripts/ingestion/finalize-backend.mjs
 
       # Completion-watch: keep the ingestion gate executable from main.
+      # Force a fresh run after production gate reconciliation.
