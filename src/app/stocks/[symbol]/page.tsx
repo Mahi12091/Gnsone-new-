@@ -5,7 +5,7 @@ import { getStockBySymbol, getStockResearchDetail } from "@/lib/data/stock-repos
 
 const missing = "Not available";
 
-type AnyRow = Record<string, any>;
+type AnyRow = Record<string, unknown>;
 
 function n(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -220,28 +220,21 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
       </section>
 
       <section id="dividends" className="mt-10 scroll-mt-24">
-        <PageTitle eyebrow="Income" title="Dividend history" description="Dividend announcements, ex-dates, record dates, payment dates and amounts." />
+        <PageTitle eyebrow="Income" title="Dividend history" description="Cash distribution history currently available in the canonical feed." />
         <Card className="overflow-hidden"><DataTable rows={detail.dividends} title="Dividends" /></Card>
       </section>
 
       <section id="corporate-actions" className="mt-10 scroll-mt-24">
-        <PageTitle eyebrow="Corporate actions" title="Corporate action history" description="Splits, bonuses, dividends, buybacks and other issuer events available in the feed." />
+        <PageTitle eyebrow="Events" title="Corporate actions" description="Splits, bonuses and other corporate actions in the canonical market feed." />
         <Card className="overflow-hidden"><DataTable rows={detail.corporate_actions} title="Corporate actions" /></Card>
       </section>
 
       <section id="instrument" className="mt-10 scroll-mt-24">
-        <PageTitle eyebrow="Instrument" title="Identifiers, listing & equity details" description="Complete instrument metadata returned by the canonical record." />
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card className="p-5"><h2 className="font-semibold text-slate-100">Instrument</h2><div className="mt-4"><ObjectGrid data={detail.instrument} /></div></Card>
-          <Card className="p-5"><h2 className="font-semibold text-slate-100">Equity Profile</h2><div className="mt-4"><ObjectGrid data={detail.equity_profile} /></div></Card>
-        </div>
-        <Card className="mt-5 p-5"><h2 className="font-semibold text-slate-100">Identifiers</h2><div className="mt-4"><DataTable rows={detail.identifiers} title="Identifiers" /></div></Card>
+        <PageTitle eyebrow="Instrument" title="Instrument metadata" description="Canonical identifiers and listing metadata for this security." />
+        <Card className="p-5"><ObjectGrid data={detail.instrument} /></Card>
+        <Card className="mt-4 overflow-hidden"><DataTable rows={detail.identifiers} title="Identifiers" /></Card>
+        <Card className="mt-4 p-5"><ObjectGrid data={detail.equity_profile} /></Card>
       </section>
-
-      <Card className="mt-10 p-5 sm:p-6">
-        <h2 className="font-semibold text-slate-100">Data provenance & disclaimer</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-400">This page displays data returned by the canonical GNSOne research feed. Missing values are shown as unavailable rather than fabricated. Market data may be delayed. GNSOne provides research and informational content and does not provide personalized investment advice.</p>
-      </Card>
     </SiteShell>
   );
 }
