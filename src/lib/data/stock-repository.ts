@@ -17,8 +17,22 @@ export type StockDetail = StockListItem & {
 
 type ResearchRow = Record<string, unknown>;
 
+type ResearchInstrument = {
+  instrument_id?: string | null;
+  company_id?: string | null;
+  name?: string | null;
+  nse_symbol?: string | null;
+  bse_code?: string | null;
+  nse_listing_id?: string | null;
+  instrument_type?: string | null;
+  sector?: string | null;
+  industry?: string | null;
+  currency?: string | null;
+  [key: string]: unknown;
+};
+
 export type StockResearchDetail = {
-  instrument: ResearchRow;
+  instrument: ResearchInstrument;
   price: ResearchRow | null;
   range_52w: { high: number | null; low: number | null } | null;
   score: ResearchRow | null;
@@ -77,6 +91,28 @@ function rows(value: unknown): ResearchRow[] {
   return value.filter((row): row is ResearchRow => typeof row === "object" && row !== null && !Array.isArray(row));
 }
 
+function normalizeInstrument(value: unknown): ResearchInstrument {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const row = value as ResearchRow;
+  const text = (key: string): string | null => {
+    const item = row[key];
+    return typeof item === "string" ? item : item == null ? null : String(item);
+  };
+  return {
+    ...row,
+    instrument_id: text("instrument_id"),
+    company_id: text("company_id"),
+    name: text("name"),
+    nse_symbol: text("nse_symbol"),
+    bse_code: text("bse_code"),
+    nse_listing_id: text("nse_listing_id"),
+    instrument_type: text("instrument_type"),
+    sector: text("sector"),
+    industry: text("industry"),
+    currency: text("currency"),
+  };
+}
+
 export async function getStockSnapshots(limit = 6): Promise<StockDetail[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("gns_get_stock_snapshots", { p_limit: limit });
@@ -105,7 +141,7 @@ export async function getStockResearchDetail(symbol: string): Promise<StockResea
 
   const raw = data as ResearchRow;
   return {
-    ...raw,
+    instrument: normalizeInstrument(raw.instrument),
     price: normalizeObject(raw.price as ResearchRow | null | undefined, ["source_updated_at", "date"]),
     range_52w: raw.range_52w && typeof raw.range_52w === "object" && !Array.isArray(raw.range_52w)
       ? { high: num((raw.range_52w as ResearchRow).high), low: num((raw.range_52w as ResearchRow).low) }
