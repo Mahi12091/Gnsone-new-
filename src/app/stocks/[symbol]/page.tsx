@@ -139,6 +139,12 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
     ["Overview", "#overview"], ["Price", "#price"], ["GNS Score", "#gns-score"], ["Fundamentals", "#fundamentals"], ["Financial History", "#financial-history"], ["Valuation", "#valuation"], ["Growth & Ratios", "#growth"], ["Shareholding", "#shareholding"], ["Technicals", "#technicals"], ["Dividends", "#dividends"], ["Corporate Actions", "#corporate-actions"], ["Instrument", "#instrument"]
   ] as const;
 
+  const technicalGrid = detail.technicals.reduce((acc: AnyRow, item: AnyRow) => {
+    const key = typeof item.code === "string" ? item.code : typeof item.name === "string" ? item.name : "indicator";
+    acc[key] = item.value;
+    return acc;
+  }, {});
+
   return (
     <SiteShell>
       <section id="overview" className="mb-6 scroll-mt-24">
@@ -216,7 +222,7 @@ export default async function StockPage({ params }: { params: Promise<{ symbol: 
 
       <section id="technicals" className="mt-10 scroll-mt-24">
         <PageTitle eyebrow="Technicals" title="Technical indicators" description="Latest technical indicators connected to the canonical listing." />
-        <Card className="p-5"><ObjectGrid data={detail.technicals.reduce((acc: AnyRow, item: AnyRow) => { acc[item.code ?? item.name ?? "indicator"] = item.value; return acc; }, {})} /></Card>
+        <Card className="p-5"><ObjectGrid data={technicalGrid} /></Card>
       </section>
 
       <section id="dividends" className="mt-10 scroll-mt-24">
