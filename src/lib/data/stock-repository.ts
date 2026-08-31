@@ -15,7 +15,7 @@ export type StockDetail = StockListItem & {
   score: number | null;
 };
 
-type ResearchRow = Record<string, unknown>;
+type ResearchRow = Record<string, any>;
 
 type ResearchInstrument = {
   instrument_id?: string | null;
@@ -28,7 +28,7 @@ type ResearchInstrument = {
   sector?: string | null;
   industry?: string | null;
   currency?: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 };
 
 export type StockResearchDetail = {
